@@ -11,8 +11,6 @@ if (!apiUrl || !sheetId) {
 let cachedFinancialData = null;
 let cachedChartData = null;
 let cachedTransactions = null;
-let currentPage = 1;
-const transactionsPerPage = 10;
 
 // Hàm tiện ích
 function showError(message, tabId) {
@@ -109,9 +107,6 @@ window.fetchTransactions = async function() {
 function displayTransactions(data) {
   const container = document.getElementById('transactionsContainer');
   const summaryContainer = document.getElementById('dailySummary');
-  const pageInfo = document.getElementById('pageInfo');
-  const prevPageBtn = document.getElementById('prevPage');
-  const nextPageBtn = document.getElementById('nextPage');
   container.innerHTML = '';
 
   if (data.error || !data || data.length === 0) {
@@ -121,9 +116,6 @@ function displayTransactions(data) {
       <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
       <div class="stat-box balance"><div class="title">Số dư</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
     `;
-    pageInfo.textContent = '';
-    prevPageBtn.disabled = true;
-    nextPageBtn.disabled = true;
     return;
   }
 
@@ -139,12 +131,8 @@ function displayTransactions(data) {
     <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
   `;
 
-  const totalPages = Math.ceil(data.length / transactionsPerPage);
-  const startIndex = (currentPage - 1) * transactionsPerPage;
-  const endIndex = startIndex + transactionsPerPage;
-  const paginatedData = data.slice(startIndex, endIndex);
-
-  paginatedData.forEach(item => {
+  // Hiển thị tất cả giao dịch
+  data.forEach(item => {
     const transactionBox = document.createElement('div');
     transactionBox.className = 'transaction-box';
     const amountColor = item.type === 'Thu nhập' ? '#10B981' : '#EF4444';
@@ -153,7 +141,7 @@ function displayTransactions(data) {
       <div style="display: flex; justify-content: space-between; width: 100%;">
         <div style="flex: 1;">
           <div class="date">${formatDate(item.date)}</div>
-                    <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
+          <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
           <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
         </div>
         <div style="flex: 1; text-align: right;">
@@ -169,10 +157,6 @@ function displayTransactions(data) {
     container.appendChild(transactionBox);
   });
 
-  pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
-  prevPageBtn.disabled = currentPage === 1;
-  nextPageBtn.disabled = currentPage === totalPages;
-
   document.querySelectorAll('.edit-btn').forEach(button => {
     const transactionId = button.getAttribute('data-id');
     const transaction = data.find(item => String(item.id) === String(transactionId));
@@ -184,7 +168,6 @@ function displayTransactions(data) {
     button.addEventListener('click', () => deleteTransaction(button.getAttribute('data-id')));
   });
 }
-
 async function fetchCategories() {
   try {
     const response = await fetch(`${apiUrl}?action=getCategories&sheetId=${sheetId}`);
@@ -669,21 +652,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('fetchMonthlyDataBtn').addEventListener('click', window.fetchMonthlyData);
   document.getElementById('fetchTransactionsBtn').addEventListener('click', window.fetchTransactions);
   document.getElementById('addTransactionBtn').addEventListener('click', openAddForm);
-
-  document.getElementById('prevPage').addEventListener('click', () => {
-    if (currentPage > 1) {
-      currentPage--;
-      window.fetchTransactions();
-    }
-  });
-  document.getElementById('nextPage').addEventListener('click', () => {
-    const totalPages = Math.ceil((cachedTransactions?.data.length || 0) / transactionsPerPage);
-    if (currentPage < totalPages) {
-      currentPage++;
-      window.fetchTransactions();
-    }
-  });
-
   const today = new Date();
   const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
   document.getElementById('startDate').value = formatDateToYYYYMMDD(startDate);

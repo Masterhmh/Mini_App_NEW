@@ -141,7 +141,7 @@ function displayTransactions(data) {
 
   const totalPages = Math.ceil(data.length / transactionsPerPage);
   const startIndex = (currentPage - 1) * transactionsPerPage;
-  const endIndex = startIndex + transactionsPerPage;
+  const endIndex = Math.min(startIndex + transactionsPerPage, data.length); // Đảm bảo không vượt quá độ dài data
   const paginatedData = data.slice(startIndex, endIndex);
 
   paginatedData.forEach(item => {
@@ -153,7 +153,7 @@ function displayTransactions(data) {
       <div style="display: flex; justify-content: space-between; width: 100%;">
         <div style="flex: 1;">
           <div class="date">${formatDate(item.date)}</div>
-                    <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
+          <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
           <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
         </div>
         <div style="flex: 1; text-align: right;">
@@ -169,9 +169,10 @@ function displayTransactions(data) {
     container.appendChild(transactionBox);
   });
 
+  // Cập nhật thông tin phân trang
   pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
   prevPageBtn.disabled = currentPage === 1;
-  nextPageBtn.disabled = currentPage === totalPages;
+  nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
 
   document.querySelectorAll('.edit-btn').forEach(button => {
     const transactionId = button.getAttribute('data-id');
@@ -670,17 +671,21 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('fetchTransactionsBtn').addEventListener('click', window.fetchTransactions);
   document.getElementById('addTransactionBtn').addEventListener('click', openAddForm);
 
+  // Gắn sự kiện cho nút phân trang
   document.getElementById('prevPage').addEventListener('click', () => {
     if (currentPage > 1) {
       currentPage--;
       window.fetchTransactions();
     }
   });
+
   document.getElementById('nextPage').addEventListener('click', () => {
-    const totalPages = Math.ceil((cachedTransactions?.data.length || 0) / transactionsPerPage);
-    if (currentPage < totalPages) {
-      currentPage++;
-      window.fetchTransactions();
+    if (cachedTransactions && cachedTransactions.data) {
+      const totalPages = Math.ceil(cachedTransactions.data.length / transactionsPerPage);
+      if (currentPage < totalPages) {
+        currentPage++;
+        window.fetchTransactions();
+      }
     }
   });
 

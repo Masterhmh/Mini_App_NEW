@@ -141,7 +141,7 @@ function displayTransactions(data) {
 
   const totalPages = Math.ceil(data.length / transactionsPerPage);
   const startIndex = (currentPage - 1) * transactionsPerPage;
-  const endIndex = Math.min(startIndex + transactionsPerPage, data.length); // Đảm bảo không vượt quá độ dài data
+  const endIndex = startIndex + transactionsPerPage;
   const paginatedData = data.slice(startIndex, endIndex);
 
   paginatedData.forEach(item => {
@@ -671,21 +671,19 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('fetchTransactionsBtn').addEventListener('click', window.fetchTransactions);
   document.getElementById('addTransactionBtn').addEventListener('click', openAddForm);
 
-  // Gắn sự kiện cho nút phân trang
+  // Sự kiện phân trang
   document.getElementById('prevPage').addEventListener('click', () => {
     if (currentPage > 1) {
       currentPage--;
-      window.fetchTransactions();
+      displayTransactions(cachedTransactions.data); // Hiển thị lại dữ liệu với trang mới
     }
   });
 
   document.getElementById('nextPage').addEventListener('click', () => {
-    if (cachedTransactions && cachedTransactions.data) {
-      const totalPages = Math.ceil(cachedTransactions.data.length / transactionsPerPage);
-      if (currentPage < totalPages) {
-        currentPage++;
-        window.fetchTransactions();
-      }
+    const totalPages = Math.ceil((cachedTransactions?.data.length || 0) / transactionsPerPage);
+    if (currentPage < totalPages) {
+      currentPage++;
+      displayTransactions(cachedTransactions.data); // Hiển thị lại dữ liệu với trang mới
     }
   });
 

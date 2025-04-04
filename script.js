@@ -84,31 +84,19 @@ window.fetchTransactions = async function() {
   const dateForApi = transactionDate;
   const [year, month, day] = transactionDate.split('-');
   const formattedDateForDisplay = `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
-  const cacheKey = `${formattedDateForDisplay}`;
+  const cacheKey = `${formattedDateForDisplay}-${currentPage}`; // Thêm currentPage vào cacheKey
 
-  // Reset về trang 1 khi lọc dữ liệu mới
-  currentPage = 1;
-
-  // Kiểm tra cache
   if (cachedTransactions && cachedTransactions.cacheKey === cacheKey) {
-    console.log("Dữ liệu từ cache:", cachedTransactions.data); // Debug
     displayTransactions(cachedTransactions.data);
     return;
   }
 
   showLoading(true, 'tab1');
   try {
-    const response = await fetch(`${apiUrl}?action=getTransactionsByDate&date=${encodeURIComponent(dateForApi)}&sheetId=${sheetId}`);
+    // Thêm tham số page và limit vào URL API
+    const response = await fetch(`${apiUrl}?action=getTransactionsByDate&date=${encodeURIComponent(dateForApi)}&sheetId=${sheetId}&page=${currentPage}&limit=${transactionsPerPage}`);
     const transactionData = await response.json();
     if (transactionData.error) throw new Error(transactionData.error);
-
-    // Kiểm tra dữ liệu trả về
-    console.log("Dữ liệu từ API:", transactionData); // Debug
-    if (!Array.isArray(transactionData)) {
-      throw new Error("Dữ liệu giao dịch không đúng định dạng!");
-    }
-
-    // Lưu vào cache
     cachedTransactions = { cacheKey, data: transactionData };
     displayTransactions(transactionData);
   } catch (error) {
@@ -127,14 +115,11 @@ function displayTransactions(data) {
   const nextPageBtn = document.getElementById('nextPage');
   container.innerHTML = '';
 
-  // Kiểm tra dữ liệu đầu vào
-  if (!data || data.error || !Array.isArray(data) || data.length === 0) {
+  if (data.error || !data || !data.transactions || data.transactions.length === 0) {
     container.innerHTML = '<div>Không có giao dịch trong ngày này</div>';
     summaryContainer.innerHTML = `
       <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-      <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no --
-
--data">Không có<br>dữ liệu</div></div>
+      <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
       <div class="stat-box balance"><div class="title">Số dư</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
     `;
     pageInfo.textContent = '';
@@ -143,9 +128,8 @@ function displayTransactions(data) {
     return;
   }
 
-  // Tính toán tổng thu nhập, chi tiêu và số dư
   let totalIncome = 0, totalExpense = 0;
-  data.forEach(item => {
+  data.transactions.forEach(item => {
     if (item.type === 'Thu nhập') totalIncome += item.amount;
     else if (item.type === 'Chi tiêu') totalExpense += item.amount;
   });
@@ -156,15 +140,10 @@ function displayTransactions(data) {
     <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
   `;
 
-  // Tính toán phân trang
-  console.log("Số lượng giao dịch:", data.length); // Debug
-  const totalPages = Math.ceil(data.length / transactionsPerPage);
-  console.log("Tổng số trang:", totalPages); // Debug
-  const startIndex = (currentPage - 1) * transactionsPerPage;
-  const endIndex = Math.min(startIndex + transactionsPerPage, data.length);
-  const paginatedData = data.slice(startIndex, endIndex);
+  // Tính tổng số trang dựa trên totalTransactions
+  const totalPages = Math.ceil(data.totalTransactions / transactionsPerPage);
+  const paginatedData = data.transactions; // Dữ liệu đã được phân trang từ server
 
-  // Hiển thị giao dịch
   paginatedData.forEach(item => {
     const transactionBox = document.createElement('div');
     transactionBox.className = 'transaction-box';
@@ -190,20 +169,13 @@ function displayTransactions(data) {
     container.appendChild(transactionBox);
   });
 
-  // Cập nhật thông tin phân trang
   pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
   prevPageBtn.disabled = currentPage === 1;
-  nextPageBtn.disabled = currentPage >= totalPages;
+  nextPageBtn.disabled = currentPage === totalPages;
 
-  // Debug trạng thái nút
-  console.log("Trang hiện tại:", currentPage);
-  console.log("Nút Trang trước disabled:", prevPageBtn.disabled);
-  console.log("Nút Trang sau disabled:", nextPageBtn.disabled);
-
-  // Gắn sự kiện cho các nút chỉnh sửa và xóa
   document.querySelectorAll('.edit-btn').forEach(button => {
     const transactionId = button.getAttribute('data-id');
-    const transaction = data.find(item => String(item.id) === String(transactionId));
+    const transaction = data.transactions.find(item => String(item.id) === String(transactionId));
     if (!transaction) return console.error(`Không tìm thấy giao dịch với ID: ${transactionId}`);
     button.addEventListener('click', () => openEditForm(transaction));
   });
@@ -706,7 +678,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.getElementById('nextPage').addEventListener('click', () => {
-  const totalPages = Math.ceil((cachedTransactions?.data.length || 0) / transactionsPerPage);
+  const totalPages = Math.ceil((cachedTransactions?.data.totalTransactions || 0) / transactionsPerPage);
   if (currentPage < totalPages) {
     currentPage++;
     window.fetchTransactions();

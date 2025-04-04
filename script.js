@@ -741,14 +741,10 @@ function displayMonthlyExpenses(data) {
   const nextPageBtn = document.getElementById('nextPageMonthly');
   container.innerHTML = '';
 
-  let totalIncome = 0, totalExpense = 0;
-
   if (data.error || !data || data.length === 0) {
-    container.innerHTML = '<div>Không có giao dịch trong tháng này</div>';
+    container.innerHTML = '<div>Không có chi tiêu trong tháng này</div>';
     summaryContainer.innerHTML = `
-      <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
       <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-      <div class="stat-box balance"><div class="title">Số dư</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
     `;
     pageInfo.textContent = '';
     prevPageBtn.disabled = true;
@@ -756,19 +752,17 @@ function displayMonthlyExpenses(data) {
     return;
   }
 
-  // Tính tổng thu nhập và chi tiêu
-  data.forEach(item => {
-    if (item.type === 'Thu nhập') totalIncome += item.amount;
-    else if (item.type === 'Chi tiêu') totalExpense += item.amount;
-  });
-  const balance = totalIncome - totalExpense;
-
-  // Hiển thị tổng quan
-  summaryContainer.innerHTML = `
-    <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
-    <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
-    <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
-  `;
+  let totalIncome = 0, totalExpense = 0;
+data.forEach(item => {
+  if (item.type === 'Thu nhập') totalIncome += item.amount;
+  else if (item.type === 'Chi tiêu') totalExpense += item.amount;
+});
+const balance = totalIncome - totalExpense;
+summaryContainer.innerHTML = `
+  <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
+  <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
+  <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
+`;
 
   const totalPages = Math.ceil(data.length / expensesPerPage);
   const startIndex = (currentPageMonthly - 1) * expensesPerPage;
@@ -778,17 +772,15 @@ function displayMonthlyExpenses(data) {
   paginatedData.forEach(item => {
     const expenseBox = document.createElement('div');
     expenseBox.className = 'transaction-box';
-    const amountColor = item.type === 'Thu nhập' ? '#10B981' : '#EF4444';
-    const typeClass = item.type === 'Thu nhập' ? 'income' : 'expense';
     expenseBox.innerHTML = `
       <div style="display: flex; justify-content: space-between; width: 100%;">
         <div style="flex: 1;">
           <div class="date">${formatDate(item.date)}</div>
-          <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
+          <div class="amount" style="color: #EF4444">${item.amount.toLocaleString('vi-VN')}đ</div>
           <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
         </div>
         <div style="flex: 1; text-align: right;">
-          <div class="type ${typeClass}">Phân loại: ${item.type}</div>
+          <div class="type expense">Phân loại: ${item.type}</div>
           <div class="category">Phân loại chi tiết: ${item.category}</div>
         </div>
       </div>
@@ -807,7 +799,7 @@ function displayMonthlyExpenses(data) {
   document.querySelectorAll('.edit-btn').forEach(button => {
     const expenseId = button.getAttribute('data-id');
     const expense = data.find(item => String(item.id) === String(expenseId));
-    if (!expense) return console.error(`Không tìm thấy giao dịch với ID: ${expenseId}`);
+    if (!expense) return console.error(`Không tìm thấy chi tiêu với ID: ${expenseId}`);
     button.addEventListener('click', () => openEditForm(expense));
   });
 

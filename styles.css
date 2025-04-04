@@ -140,48 +140,6 @@ button {
 button:hover { 
   transform: translateY(-2px); 
 }
-
-#pagination {
-  text-align: center;
-  margin-top: 1rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem; /* Khoảng cách giữa nút và text */
-}
-
-#prevPage, #nextPage {
-  min-width: 120px; /* Đảm bảo kích thước tối thiểu bằng nhau */
-  padding: 0.6rem 1.5rem; /* Đồng nhất padding */
-  background: linear-gradient(135deg, #16A34A, #4ADE80);
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s;
-}
-
-#prevPage:hover, #nextPage:hover {
-  transform: translateY(-2px);
-}
-
-#prevPage:disabled, #nextPage:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Điều chỉnh cho màn hình nhỏ */
-@media (max-width: 600px) {
-  #prevPage, #nextPage {
-    min-width: 100px;
-    padding: 0.6rem 1rem;
-    font-size: 0.85rem;
-  }
-}
-
 .notification {
   text-align: center;
   margin-bottom: 1rem;

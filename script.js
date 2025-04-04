@@ -56,7 +56,7 @@ function formatDate(dateStr) {
 
 function formatDateToYYYYMMDD(date) {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Tháng bắt đầu từ 0, cộng 1
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
@@ -96,7 +96,7 @@ window.fetchTransactions = async function() {
     const response = await fetch(`${apiUrl}?action=getTransactionsByDate&date=${encodeURIComponent(dateForApi)}&sheetId=${sheetId}`);
     const transactionData = await response.json();
     if (transactionData.error) throw new Error(transactionData.error);
-    console.log('Dữ liệu từ API:', transactionData); // Kiểm tra dữ liệu trả về
+    console.log('Dữ liệu từ API:', transactionData); // Kiểm tra dữ liệu
     cachedTransactions = { cacheKey, data: transactionData };
     displayTransactions(transactionData);
   } catch (error) {
@@ -128,8 +128,7 @@ function displayTransactions(data) {
     return;
   }
 
-  // Thêm log để kiểm tra dữ liệu
-  console.log('Số giao dịch:', data.length);
+  console.log('Số giao dịch:', data.length); // Kiểm tra số lượng giao dịch
   console.log('Trang hiện tại:', currentPage);
 
   let totalIncome = 0, totalExpense = 0;
@@ -145,10 +144,10 @@ function displayTransactions(data) {
   `;
 
   const totalPages = Math.ceil(data.length / transactionsPerPage);
-  console.log('Tổng số trang:', totalPages); // Kiểm tra totalPages
+  console.log('Tổng số trang:', totalPages);
 
   const startIndex = (currentPage - 1) * transactionsPerPage;
-  const endIndex = startIndex + transactionsPerPage;
+  const endIndex = Math.min(startIndex + transactionsPerPage, data.length); // Đảm bảo không vượt quá data.length
   const paginatedData = data.slice(startIndex, endIndex);
 
   paginatedData.forEach(item => {
@@ -176,11 +175,10 @@ function displayTransactions(data) {
     container.appendChild(transactionBox);
   });
 
-  // Cập nhật thông tin phân trang
   pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
   prevPageBtn.disabled = currentPage === 1;
-  nextPageBtn.disabled = currentPage >= totalPages; // Sửa lại điều kiện
-  console.log('Trạng thái nextPageBtn.disabled:', nextPageBtn.disabled);
+  nextPageBtn.disabled = currentPage >= totalPages;
+  console.log('nextPageBtn.disabled:', nextPageBtn.disabled); // Kiểm tra trạng thái nút
 
   document.querySelectorAll('.edit-btn').forEach(button => {
     const transactionId = button.getAttribute('data-id');
@@ -718,7 +716,12 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('endDate').value = formatDateToYYYYMMDD(today);
   document.getElementById('startMonth').value = 1;
   document.getElementById('endMonth').value = 12;
-  document.getElementById('transactionDate').value = formatDateToYYYYMMDD(today);
+
+  // Đặt ngày hôm nay và tải dữ liệu tự động
+  const transactionDateInput = document.getElementById('transactionDate');
+  transactionDateInput.value = formatDateToYYYYMMDD(today);
+  console.log('Ngày mặc định:', transactionDateInput.value); // Kiểm tra giá trị
+  window.fetchTransactions(); // Tải dữ liệu ngay khi vào
 
   window.openTab('tab1');
 });

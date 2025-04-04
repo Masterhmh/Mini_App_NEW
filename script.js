@@ -96,6 +96,7 @@ window.fetchTransactions = async function() {
     const response = await fetch(`${apiUrl}?action=getTransactionsByDate&date=${encodeURIComponent(dateForApi)}&sheetId=${sheetId}`);
     const transactionData = await response.json();
     if (transactionData.error) throw new Error(transactionData.error);
+    console.log('Dữ liệu từ API:', transactionData); // Kiểm tra dữ liệu trả về
     cachedTransactions = { cacheKey, data: transactionData };
     displayTransactions(transactionData);
   } catch (error) {
@@ -127,6 +128,10 @@ function displayTransactions(data) {
     return;
   }
 
+  // Thêm log để kiểm tra dữ liệu
+  console.log('Số giao dịch:', data.length);
+  console.log('Trang hiện tại:', currentPage);
+
   let totalIncome = 0, totalExpense = 0;
   data.forEach(item => {
     if (item.type === 'Thu nhập') totalIncome += item.amount;
@@ -140,6 +145,8 @@ function displayTransactions(data) {
   `;
 
   const totalPages = Math.ceil(data.length / transactionsPerPage);
+  console.log('Tổng số trang:', totalPages); // Kiểm tra totalPages
+
   const startIndex = (currentPage - 1) * transactionsPerPage;
   const endIndex = startIndex + transactionsPerPage;
   const paginatedData = data.slice(startIndex, endIndex);
@@ -169,6 +176,23 @@ function displayTransactions(data) {
     container.appendChild(transactionBox);
   });
 
+  // Cập nhật thông tin phân trang
+  pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
+  prevPageBtn.disabled = currentPage === 1;
+  nextPageBtn.disabled = currentPage >= totalPages; // Sửa lại điều kiện
+  console.log('Trạng thái nextPageBtn.disabled:', nextPageBtn.disabled);
+
+  document.querySelectorAll('.edit-btn').forEach(button => {
+    const transactionId = button.getAttribute('data-id');
+    const transaction = data.find(item => String(item.id) === String(transactionId));
+    if (!transaction) return console.error(`Không tìm thấy giao dịch với ID: ${transactionId}`);
+    button.addEventListener('click', () => openEditForm(transaction));
+  });
+
+  document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', () => deleteTransaction(button.getAttribute('data-id')));
+  });
+}
   // Cập nhật thông tin phân trang
   pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
   prevPageBtn.disabled = currentPage === 1;
@@ -671,11 +695,11 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('fetchTransactionsBtn').addEventListener('click', window.fetchTransactions);
   document.getElementById('addTransactionBtn').addEventListener('click', openAddForm);
 
-  // Sự kiện phân trang
   document.getElementById('prevPage').addEventListener('click', () => {
     if (currentPage > 1) {
       currentPage--;
-      displayTransactions(cachedTransactions.data); // Hiển thị lại dữ liệu với trang mới
+      displayTransactions(cachedTransactions.data);
+      console.log('Chuyển về trang trước:', currentPage);
     }
   });
 
@@ -683,7 +707,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const totalPages = Math.ceil((cachedTransactions?.data.length || 0) / transactionsPerPage);
     if (currentPage < totalPages) {
       currentPage++;
-      displayTransactions(cachedTransactions.data); // Hiển thị lại dữ liệu với trang mới
+      displayTransactions(cachedTransactions.data);
+      console.log('Chuyển sang trang sau:', currentPage);
     }
   });
 

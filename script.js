@@ -12,7 +12,7 @@ let cachedFinancialData = null;
 let cachedChartData = null;
 let cachedTransactions = null;
 let currentPage = 1;
-const transactionsPerPage = 20;
+const transactionsPerPage = 10;
 
 // Hàm tiện ích
 function showError(message, tabId) {

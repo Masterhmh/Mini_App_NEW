@@ -95,6 +95,8 @@ window.fetchTransactions = async function() {
   try {
     const response = await fetch(`${apiUrl}?action=getTransactionsByDate&date=${encodeURIComponent(dateForApi)}&sheetId=${sheetId}`);
     const transactionData = await response.json();
+    console.log("Dữ liệu từ API:", transactionData); // Kiểm tra dữ liệu
+    console.log("Số lượng giao dịch:", transactionData.length); // Kiểm tra số lượng
     if (transactionData.error) throw new Error(transactionData.error);
     cachedTransactions = { cacheKey, data: transactionData };
     displayTransactions(transactionData);
@@ -112,6 +114,7 @@ function displayTransactions(data) {
   const pageInfo = document.getElementById('pageInfo');
   const prevPageBtn = document.getElementById('prevPage');
   const nextPageBtn = document.getElementById('nextPage');
+  console.log("transactionsPerPage hiện tại:", transactionsPerPage); // Kiểm tra giá trị
   container.innerHTML = '';
 
   if (data.error || !data || data.length === 0) {
@@ -139,11 +142,14 @@ function displayTransactions(data) {
     <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
   `;
 
-  const totalPages = Math.ceil(data.length / transactionsPerPage);
-  const startIndex = (currentPage - 1) * transactionsPerPage;
-  const endIndex = startIndex + transactionsPerPage;
-  const paginatedData = data.slice(startIndex, endIndex);
-
+const totalPages = Math.ceil(data.length / transactionsPerPage);
+const startIndex = (currentPage - 1) * transactionsPerPage;
+const endIndex = startIndex + transactionsPerPage;
+const paginatedData = data.slice(startIndex, endIndex);
+console.log("Total pages:", totalPages);
+console.log("Start index:", startIndex, "End index:", endIndex);
+console.log("Số giao dịch hiển thị:", paginatedData.length);
+  
   paginatedData.forEach(item => {
     const transactionBox = document.createElement('div');
     transactionBox.className = 'transaction-box';

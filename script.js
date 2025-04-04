@@ -120,10 +120,10 @@ function displayTransactions(data) {
   if (data.error || !data || data.length === 0) {
     container.innerHTML = '<div>Không có giao dịch trong ngày này</div>';
     summaryContainer.innerHTML = `
-      <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-      <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-      <div class="stat-box balance"><div class="title">Số dư</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-    `;
+  <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+  <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+  <div class="stat-box balance"><div class="title">Số dư</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+`;
     pageInfo.textContent = '';
     prevPageBtn.disabled = true;
     nextPageBtn.disabled = true;
@@ -697,6 +697,166 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('startMonth').value = 1;
   document.getElementById('endMonth').value = 12;
   document.getElementById('transactionDate').value = formatDateToYYYYMMDD(today);
+
+  window.openTab('tab1');
+});
+// Thêm biến toàn cục cho tab mới
+let cachedMonthlyExpenses = null;
+let currentPageMonthly = 1;
+const expensesPerPage = 10;
+
+// Hàm lấy chi tiêu trong tháng
+window.fetchMonthlyExpenses = async function() {
+  const month = document.getElementById('expenseMonth').value;
+  if (!month) return showError("Vui lòng chọn tháng để xem chi tiêu!", 'tab5');
+  const year = new Date().getFullYear(); // Hiện tại chỉ lấy năm hiện tại, có thể thêm input năm nếu cần
+  const cacheKey = `${year}-${month}`;
+
+  if (cachedMonthlyExpenses && cachedMonthlyExpenses.cacheKey === cacheKey) {
+    displayMonthlyExpenses(cachedMonthlyExpenses.data);
+    return;
+  }
+
+  showLoading(true, 'tab5');
+  try {
+    const response = await fetch(`${apiUrl}?action=getExpensesByMonth&month=${month}&year=${year}&sheetId=${sheetId}`);
+    const expenseData = await response.json();
+    if (expenseData.error) throw new Error(expenseData.error);
+    cachedMonthlyExpenses = { cacheKey, data: expenseData };
+    displayMonthlyExpenses(expenseData);
+  } catch (error) {
+    showError("Lỗi khi lấy dữ liệu chi tiêu: " + error.message, 'tab5');
+    displayMonthlyExpenses({ error: true });
+  } finally {
+    showLoading(false, 'tab5');
+  }
+};
+
+// Hàm hiển thị chi tiêu
+function displayMonthlyExpenses(data) {
+  const container = document.getElementById('monthlyExpensesContainer');
+  const summaryContainer = document.getElementById('monthlyExpenseSummary');
+  const pageInfo = document.getElementById('pageInfoMonthly');
+  const prevPageBtn = document.getElementById('prevPageMonthly');
+  const nextPageBtn = document.getElementById('nextPageMonthly');
+  container.innerHTML = '';
+
+  if (data.error || !data || data.length === 0) {
+    container.innerHTML = '<div>Không có chi tiêu trong tháng này</div>';
+    summaryContainer.innerHTML = `
+      <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+    `;
+    pageInfo.textContent = '';
+    prevPageBtn.disabled = true;
+    nextPageBtn.disabled = true;
+    return;
+  }
+
+  let totalIncome = 0, totalExpense = 0;
+data.forEach(item => {
+  if (item.type === 'Thu nhập') totalIncome += item.amount;
+  else if (item.type === 'Chi tiêu') totalExpense += item.amount;
+});
+const balance = totalIncome - totalExpense;
+summaryContainer.innerHTML = `
+  <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
+  <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
+  <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
+`;
+
+  const totalPages = Math.ceil(data.length / expensesPerPage);
+  const startIndex = (currentPageMonthly - 1) * expensesPerPage;
+  const endIndex = startIndex + expensesPerPage;
+  const paginatedData = data.slice(startIndex, endIndex);
+
+  paginatedData.forEach(item => {
+    const expenseBox = document.createElement('div');
+    expenseBox.className = 'transaction-box';
+    expenseBox.innerHTML = `
+      <div style="display: flex; justify-content: space-between; width: 100%;">
+        <div style="flex: 1;">
+          <div class="date">${formatDate(item.date)}</div>
+          <div class="amount" style="color: #EF4444">${item.amount.toLocaleString('vi-VN')}đ</div>
+          <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
+        </div>
+        <div style="flex: 1; text-align: right;">
+          <div class="type expense">Phân loại: ${item.type}</div>
+          <div class="category">Phân loại chi tiết: ${item.category}</div>
+        </div>
+      </div>
+      <div style="margin-top: 0.5rem;">
+        <button class="edit-btn" data-id="${item.id}" style="background: #FFA500; color: white; padding: 0.3rem 0.8rem; border-radius: 8px;">Sửa</button>
+        <button class="delete-btn" data-id="${item.id}" style="background: #EF4444; color: white; padding: 0.3rem 0.8rem; border-radius: 8px; margin-left: 0.5rem;">Xóa</button>
+      </div>
+    `;
+    container.appendChild(expenseBox);
+  });
+
+  pageInfo.textContent = `Trang ${currentPageMonthly} / ${totalPages}`;
+  prevPageBtn.disabled = currentPageMonthly === 1;
+  nextPageBtn.disabled = currentPageMonthly === totalPages;
+
+  document.querySelectorAll('.edit-btn').forEach(button => {
+    const expenseId = button.getAttribute('data-id');
+    const expense = data.find(item => String(item.id) === String(expenseId));
+    if (!expense) return console.error(`Không tìm thấy chi tiêu với ID: ${expenseId}`);
+    button.addEventListener('click', () => openEditForm(expense));
+  });
+
+  document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', () => deleteTransaction(button.getAttribute('data-id')));
+  });
+}
+
+// Cập nhật sự kiện khởi tạo trong DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(item => {
+    item.addEventListener('click', () => window.openTab(item.getAttribute('data-tab')));
+  });
+
+  document.getElementById('fetchDataBtn').addEventListener('click', window.fetchData);
+  document.getElementById('fetchMonthlyDataBtn').addEventListener('click', window.fetchMonthlyData);
+  document.getElementById('fetchTransactionsBtn').addEventListener('click', window.fetchTransactions);
+  document.getElementById('addTransactionBtn').addEventListener('click', openAddForm);
+  document.getElementById('fetchMonthlyExpensesBtn').addEventListener('click', window.fetchMonthlyExpenses); // Thêm sự kiện cho nút mới
+
+  document.getElementById('prevPage').addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      window.fetchTransactions();
+    }
+  });
+  document.getElementById('nextPage').addEventListener('click', () => {
+    const totalPages = Math.ceil((cachedTransactions?.data.length || 0) / transactionsPerPage);
+    if (currentPage < totalPages) {
+      currentPage++;
+      window.fetchTransactions();
+    }
+  });
+
+  document.getElementById('prevPageMonthly').addEventListener('click', () => {
+    if (currentPageMonthly > 1) {
+      currentPageMonthly--;
+      window.fetchMonthlyExpenses();
+    }
+  });
+  document.getElementById('nextPageMonthly').addEventListener('click', () => {
+    const totalPages = Math.ceil((cachedMonthlyExpenses?.data.length || 0) / expensesPerPage);
+    if (currentPageMonthly < totalPages) {
+      currentPageMonthly++;
+      window.fetchMonthlyExpenses();
+    }
+  });
+
+  const today = new Date();
+  const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  document.getElementById('startDate').value = formatDateToYYYYMMDD(startDate);
+  document.getElementById('endDate').value = formatDateToYYYYMMDD(today);
+  document.getElementById('startMonth').value = 1;
+  document.getElementById('endMonth').value = 12;
+  document.getElementById('transactionDate').value = formatDateToYYYYMMDD(today);
+  document.getElementById('expenseMonth').value = today.getMonth() + 1; // Đặt tháng hiện tại làm mặc định
 
   window.openTab('tab1');
 });

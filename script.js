@@ -86,6 +86,9 @@ window.fetchTransactions = async function() {
   const formattedDateForDisplay = `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
   const cacheKey = `${formattedDateForDisplay}`;
 
+  // Reset về trang 1 khi lọc dữ liệu mới
+  currentPage = 1;
+
   if (cachedTransactions && cachedTransactions.cacheKey === cacheKey) {
     displayTransactions(cachedTransactions.data);
     return;
@@ -141,7 +144,7 @@ function displayTransactions(data) {
 
   const totalPages = Math.ceil(data.length / transactionsPerPage);
   const startIndex = (currentPage - 1) * transactionsPerPage;
-  const endIndex = startIndex + transactionsPerPage;
+  const endIndex = Math.min(startIndex + transactionsPerPage, data.length); // Đảm bảo không vượt quá số lượng giao dịch
   const paginatedData = data.slice(startIndex, endIndex);
 
   paginatedData.forEach(item => {
@@ -153,7 +156,7 @@ function displayTransactions(data) {
       <div style="display: flex; justify-content: space-between; width: 100%;">
         <div style="flex: 1;">
           <div class="date">${formatDate(item.date)}</div>
-                    <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
+          <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
           <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
         </div>
         <div style="flex: 1; text-align: right;">
@@ -171,7 +174,7 @@ function displayTransactions(data) {
 
   pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
   prevPageBtn.disabled = currentPage === 1;
-  nextPageBtn.disabled = currentPage === totalPages;
+  nextPageBtn.disabled = currentPage >= totalPages; // Kích hoạt nút "Trang sau" nếu còn trang tiếp theo
 
   document.querySelectorAll('.edit-btn').forEach(button => {
     const transactionId = button.getAttribute('data-id');
@@ -671,18 +674,19 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('addTransactionBtn').addEventListener('click', openAddForm);
 
   document.getElementById('prevPage').addEventListener('click', () => {
-    if (currentPage > 1) {
-      currentPage--;
-      window.fetchTransactions();
-    }
-  });
-  document.getElementById('nextPage').addEventListener('click', () => {
-    const totalPages = Math.ceil((cachedTransactions?.data.length || 0) / transactionsPerPage);
-    if (currentPage < totalPages) {
-      currentPage++;
-      window.fetchTransactions();
-    }
-  });
+  if (currentPage > 1) {
+    currentPage--;
+    window.fetchTransactions();
+  }
+});
+
+document.getElementById('nextPage').addEventListener('click', () => {
+  const totalPages = Math.ceil((cachedTransactions?.data.length || 0) / transactionsPerPage);
+  if (currentPage < totalPages) {
+    currentPage++;
+    window.fetchTransactions();
+  }
+});
 
   const today = new Date();
   const startDate = new Date(today.getFullYear(), today.getMonth(), 1);

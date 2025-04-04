@@ -84,7 +84,7 @@ window.fetchTransactions = async function() {
   const dateForApi = transactionDate;
   const [year, month, day] = transactionDate.split('-');
   const formattedDateForDisplay = `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
-  const cacheKey = `${formattedDateForDisplay}-${currentPage}`; // Thêm currentPage vào cacheKey
+  const cacheKey = `${formattedDateForDisplay}`;
 
   if (cachedTransactions && cachedTransactions.cacheKey === cacheKey) {
     displayTransactions(cachedTransactions.data);
@@ -93,8 +93,7 @@ window.fetchTransactions = async function() {
 
   showLoading(true, 'tab1');
   try {
-    // Thêm tham số page và limit vào URL API
-    const response = await fetch(`${apiUrl}?action=getTransactionsByDate&date=${encodeURIComponent(dateForApi)}&sheetId=${sheetId}&page=${currentPage}&limit=${transactionsPerPage}`);
+    const response = await fetch(`${apiUrl}?action=getTransactionsByDate&date=${encodeURIComponent(dateForApi)}&sheetId=${sheetId}`);
     const transactionData = await response.json();
     if (transactionData.error) throw new Error(transactionData.error);
     cachedTransactions = { cacheKey, data: transactionData };
@@ -115,7 +114,7 @@ function displayTransactions(data) {
   const nextPageBtn = document.getElementById('nextPage');
   container.innerHTML = '';
 
-  if (data.error || !data || !data.transactions || data.transactions.length === 0) {
+  if (data.error || !data || data.length === 0) {
     container.innerHTML = '<div>Không có giao dịch trong ngày này</div>';
     summaryContainer.innerHTML = `
       <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
@@ -129,7 +128,7 @@ function displayTransactions(data) {
   }
 
   let totalIncome = 0, totalExpense = 0;
-  data.transactions.forEach(item => {
+  data.forEach(item => {
     if (item.type === 'Thu nhập') totalIncome += item.amount;
     else if (item.type === 'Chi tiêu') totalExpense += item.amount;
   });
@@ -140,9 +139,10 @@ function displayTransactions(data) {
     <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
   `;
 
-  // Tính tổng số trang dựa trên totalTransactions
-  const totalPages = Math.ceil(data.totalTransactions / transactionsPerPage);
-  const paginatedData = data.transactions; // Dữ liệu đã được phân trang từ server
+  const totalPages = Math.ceil(data.length / transactionsPerPage);
+  const startIndex = (currentPage - 1) * transactionsPerPage;
+  const endIndex = startIndex + transactionsPerPage;
+  const paginatedData = data.slice(startIndex, endIndex);
 
   paginatedData.forEach(item => {
     const transactionBox = document.createElement('div');
@@ -153,7 +153,7 @@ function displayTransactions(data) {
       <div style="display: flex; justify-content: space-between; width: 100%;">
         <div style="flex: 1;">
           <div class="date">${formatDate(item.date)}</div>
-          <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
+                    <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
           <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
         </div>
         <div style="flex: 1; text-align: right;">
@@ -175,7 +175,7 @@ function displayTransactions(data) {
 
   document.querySelectorAll('.edit-btn').forEach(button => {
     const transactionId = button.getAttribute('data-id');
-    const transaction = data.transactions.find(item => String(item.id) === String(transactionId));
+    const transaction = data.find(item => String(item.id) === String(transactionId));
     if (!transaction) return console.error(`Không tìm thấy giao dịch với ID: ${transactionId}`);
     button.addEventListener('click', () => openEditForm(transaction));
   });
@@ -671,19 +671,18 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('addTransactionBtn').addEventListener('click', openAddForm);
 
   document.getElementById('prevPage').addEventListener('click', () => {
-  if (currentPage > 1) {
-    currentPage--;
-    window.fetchTransactions();
-  }
-});
-
-document.getElementById('nextPage').addEventListener('click', () => {
-  const totalPages = Math.ceil((cachedTransactions?.data.totalTransactions || 0) / transactionsPerPage);
-  if (currentPage < totalPages) {
-    currentPage++;
-    window.fetchTransactions();
-  }
-});
+    if (currentPage > 1) {
+      currentPage--;
+      window.fetchTransactions();
+    }
+  });
+  document.getElementById('nextPage').addEventListener('click', () => {
+    const totalPages = Math.ceil((cachedTransactions?.data.length || 0) / transactionsPerPage);
+    if (currentPage < totalPages) {
+      currentPage++;
+      window.fetchTransactions();
+    }
+  });
 
   const today = new Date();
   const startDate = new Date(today.getFullYear(), today.getMonth(), 1);

@@ -368,36 +368,46 @@ async function deleteTransaction(transactionId) {
 window.fetchData = async function() {
   const startDateInput = document.getElementById('startDate').value;
   const endDateInput = document.getElementById('endDate').value;
-  if (!startDateInput || !endDateInput) return showError("Vui lòng chọn khoảng thời gian!", 'tab2');
+  console.log("Fetching data from: " + startDateInput + " to: " + endDateInput);
+
+  if (!startDateInput || !endDateInput) {
+    alert("Vui lòng chọn khoảng thời gian!");
+    return;
+  }
   const startDate = new Date(startDateInput);
   const endDate = new Date(endDateInput);
-  if (startDate > endDate) return showError("Ngày bắt đầu không thể lớn hơn ngày kết thúc!", 'tab2');
-
-  const cacheKey = `${startDateInput}-${endDateInput}`;
-  if (cachedFinancialData && cachedChartData && cachedFinancialData.cacheKey === cacheKey) {
-    updateFinancialData(cachedFinancialData.data);
-    updateChartData(cachedChartData.data);
+  if (startDate > endDate) {
+    alert("Ngày bắt đầu không thể lớn hơn ngày kết thúc!");
     return;
   }
 
-  showLoading(true, 'tab2');
   try {
+    // Gọi API lấy dữ liệu tài chính
     const financialResponse = await fetch(`${apiUrl}?action=getFinancialSummary&startDate=${startDateInput}&endDate=${endDateInput}&sheetId=${sheetId}`);
     const financialData = await financialResponse.json();
+    console.log("Financial data received: ", financialData);
     if (financialData.error) throw new Error(financialData.error);
-    cachedFinancialData = { cacheKey, data: financialData };
     updateFinancialData(financialData);
 
+    // Gọi API lấy dữ liệu biểu đồ
     const chartResponse = await fetch(`${apiUrl}?action=getChartData&startDate=${startDateInput}&endDate=${endDateInput}&sheetId=${sheetId}`);
     const chartData = await chartResponse.json();
+    console.log("Chart data received: ", chartData);
     if (chartData.error) throw new Error(chartData.error);
-    cachedChartData = { cacheKey, data: chartData };
+
+    // Kiểm tra dữ liệu rỗng
+    if (!chartData.chartData || chartData.chartData.length === 0) {
+      console.warn("No chart data available for the selected period.");
+      alert("Không có dữ liệu để hiển thị biểu đồ trong khoảng thời gian này.");
+      updateChartData({ chartData: [], categories: [] }); // Vẽ biểu đồ rỗng
+      return;
+    }
+
     updateChartData(chartData);
   } catch (error) {
-    showError("Lỗi khi lấy dữ liệu: " + error.message, 'tab2');
-    updateFinancialData({ error: true });
-  } finally {
-    showLoading(false, 'tab2');
+    console.error("Error fetching data: ", error);
+    alert("Lỗi khi lấy dữ liệu: " + error.message);
+    updateChartData({ chartData: [], categories: [] }); // Vẽ biểu đồ rỗng khi có lỗi
   }
 };
 
@@ -523,13 +533,26 @@ window.fetchMonthlyData = async function() {
   const startMonth = parseInt(document.getElementById('startMonth').value);
   const endMonth = parseInt(document.getElementById('endMonth').value);
   const year = new Date().getFullYear();
-  if (startMonth > endMonth) return alert("Tháng bắt đầu không thể lớn hơn tháng kết thúc!");
+  console.log("Fetching monthly data from month: " + startMonth + " to: " + endMonth);
 
-  showLoading(true, 'tab3');
+  if (startMonth > endMonth) {
+    alert("Tháng bắt đầu không thể lớn hơn tháng kết thúc!");
+    return;
+  }
+
   try {
     const response = await fetch(`${apiUrl}?action=getMonthlyData&year=${year}&sheetId=${sheetId}`);
     const monthlyData = await response.json();
+    console.log("Monthly data received: ", monthlyData);
     if (monthlyData.error) throw new Error(monthlyData.error);
+
+    // Kiểm tra dữ liệu rỗng
+    if (!monthlyData || monthlyData.length === 0) {
+      console.warn("No monthly data available for the selected year.");
+      alert("Không có dữ liệu để hiển thị biểu đồ tháng trong năm này.");
+      updateMonthlyChart([]); // Vẽ biểu đồ rỗng
+      return;
+    }
 
     const fullYearData = Array.from({ length: 12 }, (_, i) => {
       const month = i + 1;
@@ -545,15 +568,9 @@ window.fetchMonthlyData = async function() {
 
     updateMonthlyChart(filteredData);
   } catch (error) {
-    showError("Lỗi khi lấy dữ liệu biểu đồ tháng: " + error.message, 'tab3');
-    const filteredData = Array.from({ length: endMonth - startMonth + 1 }, (_, i) => ({
-      month: startMonth + i,
-      income: 0,
-      expense: 0
-    }));
-    updateMonthlyChart(filteredData);
-  } finally {
-    showLoading(false, 'tab3');
+    console.error("Error fetching monthly data: ", error);
+    alert("Lỗi khi lấy dữ liệu biểu đồ tháng: " + error.message);
+    updateMonthlyChart([]); // Vẽ biểu đồ rỗng khi có lỗi
   }
 };
 

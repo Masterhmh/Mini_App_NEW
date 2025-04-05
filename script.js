@@ -837,7 +837,7 @@ function displayMonthlyExpenses(data) {
   const nextPageBtn = document.getElementById('nextPageMonthly');
   container.innerHTML = '';
 
-  if (data.error || !data || data.length === 0) {
+  if (data.error || !data.transactions || data.transactions.length === 0) {
     container.innerHTML = '<div>Không có chi tiêu trong tháng này</div>';
     summaryContainer.innerHTML = `
       <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
@@ -850,22 +850,32 @@ function displayMonthlyExpenses(data) {
     return;
   }
 
-  let totalIncome = 0, totalExpense = 0;
-  data.forEach(item => {
-    if (item.type === 'Thu nhập') totalIncome += item.amount;
-    else if (item.type === 'Chi tiêu') totalExpense += item.amount;
-  });
+  // Sử dụng totalIncome và totalExpense từ API
+  const totalIncome = data.totalIncome;
+  const totalExpense = data.totalExpense;
   const balance = totalIncome - totalExpense;
+
   summaryContainer.innerHTML = `
     <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
     <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
     <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
   `;
 
-  const totalPages = Math.ceil(data.length / expensesPerPage);
+  // Lọc chỉ các giao dịch "Chi tiêu" nếu muốn
+  const expenseData = data.transactions.filter(item => item.type === 'Chi tiêu');
+
+  if (expenseData.length === 0) {
+    container.innerHTML = '<div>Không có chi tiêu trong tháng này</div>';
+    pageInfo.textContent = '';
+    prevPageBtn.disabled = true;
+    nextPageBtn.disabled = true;
+    return;
+  }
+
+  const totalPages = Math.ceil(expenseData.length / expensesPerPage);
   const startIndex = (currentPageMonthly - 1) * expensesPerPage;
   const endIndex = startIndex + expensesPerPage;
-  const paginatedData = data.slice(startIndex, endIndex);
+  const paginatedData = expenseData.slice(startIndex, endIndex);
 
   paginatedData.forEach(item => {
     const expenseBox = document.createElement('div');
@@ -896,7 +906,7 @@ function displayMonthlyExpenses(data) {
 
   document.querySelectorAll('.edit-btn').forEach(button => {
     const expenseId = button.getAttribute('data-id');
-    const expense = data.find(item => String(item.id) === String(expenseId));
+    const expense = expenseData.find(item => String(item.id) === String(expenseId));
     if (!expense) return console.error(`Không tìm thấy chi tiêu với ID: ${expenseId}`);
     button.addEventListener('click', () => openEditForm(expense));
   });

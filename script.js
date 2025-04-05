@@ -368,62 +368,105 @@ async function deleteTransaction(transactionId) {
 window.fetchData = async function() {
   const startDateInput = document.getElementById('startDate').value;
   const endDateInput = document.getElementById('endDate').value;
-  if (!startDateInput || !endDateInput) return showError("Vui lòng chọn khoảng thời gian!", 'tab2');
+  console.log("Fetching data from: " + startDateInput + " to: " + endDateInput);
+  if (!startDateInput || !endDateInput) {
+    alert("Vui lòng chọn khoảng thời gian!");
+    return;
+  }
   const startDate = new Date(startDateInput);
   const endDate = new Date(endDateInput);
-  if (startDate > endDate) return showError("Ngày bắt đầu không thể lớn hơn ngày kết thúc!", 'tab2');
-
-  const cacheKey = `${startDateInput}-${endDateInput}`;
-  if (cachedFinancialData && cachedChartData && cachedFinancialData.cacheKey === cacheKey) {
-    updateFinancialData(cachedFinancialData.data);
-    updateChartData(cachedChartData.data);
+  if (startDate > endDate) {
+    alert("Ngày bắt đầu không thể lớn hơn ngày kết thúc!");
     return;
   }
 
-  showLoading(true, 'tab2');
   try {
     const financialResponse = await fetch(`${apiUrl}?action=getFinancialSummary&startDate=${startDateInput}&endDate=${endDateInput}&sheetId=${sheetId}`);
     const financialData = await financialResponse.json();
-    if (financialData.error) throw new Error(financialData.error);
-    cachedFinancialData = { cacheKey, data: financialData };
+    console.log("Financial data received: ", financialData);
+    if (financialData.error) {
+      throw new Error(financialData.error);
+    }
     updateFinancialData(financialData);
 
     const chartResponse = await fetch(`${apiUrl}?action=getChartData&startDate=${startDateInput}&endDate=${endDateInput}&sheetId=${sheetId}`);
     const chartData = await chartResponse.json();
-    if (chartData.error) throw new Error(chartData.error);
-    cachedChartData = { cacheKey, data: chartData };
+    console.log("Chart data received: ", chartData);
+    if (chartData.error) {
+      throw new Error(chartData.error);
+    }
     updateChartData(chartData);
   } catch (error) {
-    showError("Lỗi khi lấy dữ liệu: " + error.message, 'tab2');
+    console.error("Error fetching data: ", error);
+    alert("Lỗi khi lấy dữ liệu: " + error.message);
     updateFinancialData({ error: true });
-  } finally {
-    showLoading(false, 'tab2');
   }
 };
 
 function updateFinancialData(data) {
+  console.log("Updating financial data with: ", data);
   const container = document.getElementById('statsContainer');
-  if (!data || data.error || (data.income === 0 && data.expense === 0)) {
+
+  if (!data || data.error) {
+    console.log("No data or error detected");
     container.innerHTML = `
-      <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-      <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-      <div class="stat-box balance"><div class="title">Số dư</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+      <div class="stat-box income">
+        <div class="title">Tổng thu nhập</div>
+        <div class="amount no-data">Không có<br>dữ liệu</div>
+      </div>
+      <div class="stat-box expense">
+        <div class="title">Tổng chi tiêu</div>
+        <div class="amount no-data">Không có<br>dữ liệu</div>
+      </div>
+      <div class="stat-box balance">
+        <div class="title">Số dư</div>
+        <div class="amount no-data">Không có<br>dữ liệu</div>
+      </div>
     `;
     return;
   }
+
   const totalIncome = Number(data.income) || 0;
   const totalExpense = Number(data.expense) || 0;
+
+  if (totalIncome === 0 && totalExpense === 0) {
+    container.innerHTML = `
+      <div class="stat-box income">
+        <div class="title">Tổng thu nhập</div>
+        <div class="amount no-data">Không có<br>dữ liệu</div>
+      </div>
+      <div class="stat-box expense">
+        <div class="title">Tổng chi tiêu</div>
+        <div class="amount no-data">Không có<br>dữ liệu</div>
+      </div>
+      <div class="stat-box balance">
+        <div class="title">Số dư</div>
+        <div class="amount no-data">Không có<br>dữ liệu</div>
+      </div>
+    `;
+    return;
+  }
+
   const balance = totalIncome - totalExpense;
+
   container.innerHTML = `
-    <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
-    <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
-    <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
+    <div class="stat-box income">
+      <div class="title">Tổng thu nhập</div>
+      <div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div>
+    </div>
+    <div class="stat-box expense">
+      <div class="title">Tổng chi tiêu</div>
+      <div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div>
+    </div>
+    <div class="stat-box balance">
+      <div class="title">Số dư</div>
+      <div class="amount">${balance.toLocaleString('vi-VN')}đ</div>
+    </div>
   `;
 }
-
 function updateChartData(response) {
   if (response.error) {
-    showError(response.error, 'tab2');
+    alert(response.error);
     if (window.myChart) window.myChart.destroy();
     return;
   }
@@ -523,13 +566,19 @@ window.fetchMonthlyData = async function() {
   const startMonth = parseInt(document.getElementById('startMonth').value);
   const endMonth = parseInt(document.getElementById('endMonth').value);
   const year = new Date().getFullYear();
-  if (startMonth > endMonth) return alert("Tháng bắt đầu không thể lớn hơn tháng kết thúc!");
+  console.log("Fetching monthly data from month: " + startMonth + " to: " + endMonth);
+  if (startMonth > endMonth) {
+    alert("Tháng bắt đầu không thể lớn hơn tháng kết thúc!");
+    return;
+  }
 
-  showLoading(true, 'tab3');
   try {
     const response = await fetch(`${apiUrl}?action=getMonthlyData&year=${year}&sheetId=${sheetId}`);
     const monthlyData = await response.json();
-    if (monthlyData.error) throw new Error(monthlyData.error);
+    console.log("Monthly data received: ", monthlyData);
+    if (monthlyData.error) {
+      throw new Error(monthlyData.error);
+    }
 
     const fullYearData = Array.from({ length: 12 }, (_, i) => {
       const month = i + 1;
@@ -545,19 +594,19 @@ window.fetchMonthlyData = async function() {
 
     updateMonthlyChart(filteredData);
   } catch (error) {
-    showError("Lỗi khi lấy dữ liệu biểu đồ tháng: " + error.message, 'tab3');
+    console.error("Error fetching monthly data: ", error);
+    alert("Lỗi khi lấy dữ liệu biểu đồ tháng: " + error.message);
     const filteredData = Array.from({ length: endMonth - startMonth + 1 }, (_, i) => ({
       month: startMonth + i,
       income: 0,
       expense: 0
     }));
     updateMonthlyChart(filteredData);
-  } finally {
-    showLoading(false, 'tab3');
   }
 };
 
 function updateMonthlyChart(filteredData) {
+  console.log("Updating monthly chart with data: ", filteredData);
   const ctx = document.getElementById('monthlyChart').getContext('2d');
   if (window.monthlyChart) window.monthlyChart.destroy();
 
@@ -576,15 +625,26 @@ function updateMonthlyChart(filteredData) {
         maintainAspectRatio: true,
         aspectRatio: 1,
         scales: {
-          y: { beginAtZero: true, title: { display: true, text: 'Số tiền (đ)', font: { size: 14 } }, ticks: { font: { size: 12 } } },
-          x: { title: { display: true, text: 'Tháng', font: { size: 14 } }, ticks: { font: { size: 12 } } }
+          y: { 
+            beginAtZero: true, 
+            title: { display: true, text: 'Số tiền (đ)', font: { size: 14 } }, 
+            ticks: { font: { size: 12 } } 
+          },
+          x: { 
+            title: { display: true, text: 'Tháng', font: { size: 14 } }, 
+            ticks: { font: { size: 12 } } 
+          }
         },
         plugins: {
           legend: { display: true, labels: { font: { size: 12 } } },
           tooltip: {
             titleFont: { size: 12 },
             bodyFont: { size: 12 },
-            callbacks: { label: tooltipItem => `${tooltipItem.dataset.label}: ${tooltipItem.raw.toLocaleString('vi-VN')}đ` }
+            callbacks: {
+              label: function(tooltipItem) {
+                return `${tooltipItem.dataset.label}: ${tooltipItem.raw.toLocaleString('vi-VN')}đ`;
+              }
+            }
           },
           datalabels: { display: false }
         }
@@ -615,11 +675,19 @@ function updateMonthlyChart(filteredData) {
         y: {
           beginAtZero: true,
           title: { display: true, text: 'Số tiền (đ)', font: { size: 14 } },
-          ticks: { callback: value => value.toLocaleString('vi-VN') + 'đ', font: { size: 12 } }
+          ticks: {
+            callback: function(value) { return value.toLocaleString('vi-VN') + 'đ'; },
+            font: { size: 12 }
+          }
         },
         x: {
           title: { display: true, text: 'Tháng', font: { size: 14 } },
-          ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 45, autoSkip: false }
+          ticks: {
+            font: { size: 10 },
+            maxRotation: 45,
+            minRotation: 45,
+            autoSkip: false
+          }
         }
       },
       plugins: {
@@ -627,13 +695,17 @@ function updateMonthlyChart(filteredData) {
         tooltip: {
           titleFont: { size: 12 },
           bodyFont: { size: 12 },
-          callbacks: { label: tooltipItem => `${tooltipItem.dataset.label}: ${tooltipItem.raw.toLocaleString('vi-VN')}đ` }
+          callbacks: {
+            label: function(tooltipItem) {
+              return `${tooltipItem.dataset.label}: ${tooltipItem.raw.toLocaleString('vi-VN')}đ`;
+            }
+          }
         },
         datalabels: {
           display: true,
           align: 'end',
           anchor: 'end',
-          formatter: value => value.toLocaleString('vi-VN') + 'đ',
+          formatter: (value) => value.toLocaleString('vi-VN') + 'đ',
           color: '#1F2A44',
           font: { weight: 'bold', size: 12 }
         }

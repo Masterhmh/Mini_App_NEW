@@ -13,16 +13,6 @@ let cachedChartData = null;
 let cachedTransactions = null;
 let currentPage = 1;
 const transactionsPerPage = 10;
-let cachedMonthlyExpenses = null;
-let currentPageMonthly = 1;
-const expensesPerPage = 10;
-
-// Đăng ký plugin ChartDataLabels
-if (typeof ChartDataLabels !== 'undefined') {
-  Chart.register(ChartDataLabels);
-} else {
-  console.error("ChartDataLabels plugin not loaded!");
-}
 
 // Hàm tiện ích
 function showError(message, tabId) {
@@ -85,12 +75,6 @@ window.openTab = function(tabId) {
   contents.forEach(content => content.classList.remove('active'));
   document.getElementById(tabId).classList.add('active');
   document.querySelector(`.nav-item[data-tab="${tabId}"]`).classList.add('active');
-
-  // Kiểm tra nếu tab "Thống kê" (tab2) được mở và có dữ liệu chờ để vẽ biểu đồ
-  if (tabId === 'tab2' && window.pendingChartData) {
-    updateChartData(window.pendingChartData);
-    window.pendingChartData = null;
-  }
 };
 
 // Tab 1: Giao dịch (trước đây là tab4)
@@ -111,8 +95,8 @@ window.fetchTransactions = async function() {
   try {
     const response = await fetch(`${apiUrl}?action=getTransactionsByDate&date=${encodeURIComponent(dateForApi)}&sheetId=${sheetId}`);
     const transactionData = await response.json();
-    console.log("Dữ liệu từ API:", transactionData);
-    console.log("Số lượng giao dịch:", transactionData.length);
+    console.log("Dữ liệu từ API:", transactionData); // Kiểm tra dữ liệu
+    console.log("Số lượng giao dịch:", transactionData.length); // Kiểm tra số lượng
     if (transactionData.error) throw new Error(transactionData.error);
     cachedTransactions = { cacheKey, data: transactionData };
     displayTransactions(transactionData);
@@ -130,16 +114,16 @@ function displayTransactions(data) {
   const pageInfo = document.getElementById('pageInfo');
   const prevPageBtn = document.getElementById('prevPage');
   const nextPageBtn = document.getElementById('nextPage');
-  console.log("transactionsPerPage hiện tại:", transactionsPerPage);
+  console.log("transactionsPerPage hiện tại:", transactionsPerPage); // Kiểm tra giá trị
   container.innerHTML = '';
 
   if (data.error || !data || data.length === 0) {
     container.innerHTML = '<div>Không có giao dịch trong ngày này</div>';
     summaryContainer.innerHTML = `
-      <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-      <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-      <div class="stat-box balance"><div class="title">Số dư</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-    `;
+  <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+  <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+  <div class="stat-box balance"><div class="title">Số dư</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+`;
     pageInfo.textContent = '';
     prevPageBtn.disabled = true;
     nextPageBtn.disabled = true;
@@ -158,14 +142,14 @@ function displayTransactions(data) {
     <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
   `;
 
-  const totalPages = Math.ceil(data.length / transactionsPerPage);
-  const startIndex = (currentPage - 1) * transactionsPerPage;
-  const endIndex = startIndex + transactionsPerPage;
-  const paginatedData = data.slice(startIndex, endIndex);
-  console.log("Total pages:", totalPages);
-  console.log("Start index:", startIndex, "End index:", endIndex);
-  console.log("Số giao dịch hiển thị:", paginatedData.length);
-
+const totalPages = Math.ceil(data.length / transactionsPerPage);
+const startIndex = (currentPage - 1) * transactionsPerPage;
+const endIndex = startIndex + transactionsPerPage;
+const paginatedData = data.slice(startIndex, endIndex);
+console.log("Total pages:", totalPages);
+console.log("Start index:", startIndex, "End index:", endIndex);
+console.log("Số giao dịch hiển thị:", paginatedData.length);
+  
   paginatedData.forEach(item => {
     const transactionBox = document.createElement('div');
     transactionBox.className = 'transaction-box';
@@ -175,7 +159,7 @@ function displayTransactions(data) {
       <div style="display: flex; justify-content: space-between; width: 100%;">
         <div style="flex: 1;">
           <div class="date">${formatDate(item.date)}</div>
-          <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
+                    <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
           <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
         </div>
         <div style="flex: 1; text-align: right;">
@@ -230,7 +214,7 @@ async function openEditForm(transaction) {
   document.getElementById('editContent').value = transaction.content || '';
   document.getElementById('editAmount').value = transaction.amount || 0;
   document.getElementById('editType').value = transaction.type || 'Thu nhập';
-  document.getElementById('editDate').value = transaction.date ? transaction.date.split('/').slice(0, 2).join('/') : '';
+  document.getElementById('editDate').value = transaction.date ? transaction.date.split('/').slice(0, 2).join('/'): '';
   document.getElementById('editNote').value = transaction.note || '';
 
   const categories = await fetchCategories();
@@ -384,50 +368,36 @@ async function deleteTransaction(transactionId) {
 window.fetchData = async function() {
   const startDateInput = document.getElementById('startDate').value;
   const endDateInput = document.getElementById('endDate').value;
-  console.log("Fetching data from: " + startDateInput + " to: " + endDateInput);
-
-  if (!startDateInput || !endDateInput) {
-    alert("Vui lòng chọn khoảng thời gian!");
-    return;
-  }
+  if (!startDateInput || !endDateInput) return showError("Vui lòng chọn khoảng thời gian!", 'tab2');
   const startDate = new Date(startDateInput);
   const endDate = new Date(endDateInput);
-  if (startDate > endDate) {
-    alert("Ngày bắt đầu không thể lớn hơn ngày kết thúc!");
+  if (startDate > endDate) return showError("Ngày bắt đầu không thể lớn hơn ngày kết thúc!", 'tab2');
+
+  const cacheKey = `${startDateInput}-${endDateInput}`;
+  if (cachedFinancialData && cachedChartData && cachedFinancialData.cacheKey === cacheKey) {
+    updateFinancialData(cachedFinancialData.data);
+    updateChartData(cachedChartData.data);
     return;
   }
 
+  showLoading(true, 'tab2');
   try {
     const financialResponse = await fetch(`${apiUrl}?action=getFinancialSummary&startDate=${startDateInput}&endDate=${endDateInput}&sheetId=${sheetId}`);
     const financialData = await financialResponse.json();
-    console.log("Financial data received: ", financialData);
     if (financialData.error) throw new Error(financialData.error);
+    cachedFinancialData = { cacheKey, data: financialData };
     updateFinancialData(financialData);
 
     const chartResponse = await fetch(`${apiUrl}?action=getChartData&startDate=${startDateInput}&endDate=${endDateInput}&sheetId=${sheetId}`);
     const chartData = await chartResponse.json();
-    console.log("Chart data received: ", chartData);
     if (chartData.error) throw new Error(chartData.error);
-
-    if (!chartData.chartData || chartData.chartData.length === 0) {
-      console.warn("No chart data available for the selected period.");
-      alert("Không có dữ liệu để hiển thị biểu đồ trong khoảng thời gian này.");
-      updateChartData({ chartData: [], categories: [] });
-      return;
-    }
-
-    // Kiểm tra xem tab "Thống kê" (tab2) có đang hiển thị không
-    const tab2 = document.getElementById('tab2');
-    if (tab2.classList.contains('active')) {
-      updateChartData(chartData);
-    } else {
-      console.log("Tab 'Thống kê' not active, delaying chart update...");
-      window.pendingChartData = chartData;
-    }
+    cachedChartData = { cacheKey, data: chartData };
+    updateChartData(chartData);
   } catch (error) {
-    console.error("Error fetching data: ", error);
-    alert("Lỗi khi lấy dữ liệu: " + error.message);
-    updateChartData({ chartData: [], categories: [] });
+    showError("Lỗi khi lấy dữ liệu: " + error.message, 'tab2');
+    updateFinancialData({ error: true });
+  } finally {
+    showLoading(false, 'tab2');
   }
 };
 
@@ -457,24 +427,11 @@ function updateChartData(response) {
     if (window.myChart) window.myChart.destroy();
     return;
   }
-  const chartData = response.chartData || [];
-  const categories = response.categories || [];
-
-  // Kiểm tra canvas
-  const canvas = document.getElementById('myChart');
-  if (!canvas) {
-    console.error("Canvas element 'myChart' not found in DOM!");
-    return;
-  }
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    console.error("Failed to get 2D context for canvas 'myChart'!");
-    return;
-  }
-
+  const chartData = response.chartData;
+  const categories = response.categories;
+  const ctx = document.getElementById('myChart').getContext('2d');
   if (window.myChart) window.myChart.destroy();
-
-  const totalAmount = chartData.length > 0 ? chartData.reduce((sum, item) => sum + item.amount, 0) : 0;
+  const totalAmount = chartData.reduce((sum, item) => sum + item.amount, 0);
   const backgroundColors = [
     '#FF6B6B', '#FF9F45', '#FFE156', '#7DC95E', '#40C4FF',
     '#5A92FF', '#9B5DE5', '#FF66C4', '#FF7D7D', '#F88F70',
@@ -484,39 +441,30 @@ function updateChartData(response) {
     '#D1B3E0', '#F78F8F', '#F6B17A', '#F4A261', '#FF6392',
     '#66D9E8', '#FF85A1', '#6A0572', '#FC7A57', '#A29BFE'
   ];
-
   const customLegend = document.getElementById('customLegend');
   customLegend.innerHTML = '';
   const leftColumn = document.createElement('div');
   leftColumn.className = 'custom-legend-column';
   const rightColumn = document.createElement('div');
   rightColumn.className = 'custom-legend-column';
-
-  if (chartData.length === 0) {
-    customLegend.innerHTML = '<div>Không có dữ liệu để hiển thị</div>';
-  } else {
-    chartData.forEach((item, i) => {
-      const index = categories.indexOf(item.category);
-      const color = backgroundColors[index % backgroundColors.length];
-      const percentage = totalAmount > 0 ? ((item.amount / totalAmount) * 100).toFixed(1) : 0;
-      const legendItem = document.createElement('div');
-      legendItem.className = 'legend-item';
-      legendItem.innerHTML = `
-        <span class="legend-color" style="background-color: ${color};"></span>
-        <span class="legend-text">
-          ${item.category}:
-          <span class="legend-value">${item.amount.toLocaleString('vi-VN')}đ (${percentage}%)</span>
-        </span>
-      `;
-      if (i % 2 === 0) leftColumn.appendChild(legendItem);
-      else rightColumn.appendChild(legendItem);
-    });
-    customLegend.appendChild(leftColumn);
-    customLegend.appendChild(rightColumn);
-  }
-
-  console.log("Creating new Chart with data:", chartData);
-
+  chartData.forEach((item, i) => {
+    const index = categories.indexOf(item.category);
+    const color = backgroundColors[index % backgroundColors.length];
+    const percentage = ((item.amount / totalAmount) * 100).toFixed(1);
+    const legendItem = document.createElement('div');
+    legendItem.className = 'legend-item';
+    legendItem.innerHTML = `
+      <span class="legend-color" style="background-color: ${color};"></span>
+      <span class="legend-text">
+        ${item.category}:
+        <span class="legend-value">${item.amount.toLocaleString('vi-VN')}đ (${percentage}%)</span>
+      </span>
+    `;
+    if (i % 2 === 0) leftColumn.appendChild(legendItem);
+    else rightColumn.appendChild(legendItem);
+  });
+  customLegend.appendChild(leftColumn);
+  customLegend.appendChild(rightColumn);
   window.myChart = new Chart(ctx, {
     type: 'pie',
     data: {
@@ -542,7 +490,7 @@ function updateChartData(response) {
             label: function(tooltipItem) {
               const category = tooltipItem.label;
               const amount = tooltipItem.raw;
-              const percentage = totalAmount > 0 ? ((amount / totalAmount) * 100).toFixed(1) : 0;
+              const percentage = ((amount / totalAmount) * 100).toFixed(1);
               return `${category}: ${amount.toLocaleString('vi-VN')}đ (${percentage}%)`;
             }
           },
@@ -556,7 +504,7 @@ function updateChartData(response) {
         },
         datalabels: {
           formatter: (value, context) => {
-            const percentage = totalAmount > 0 ? ((value / totalAmount) * 100).toFixed(1) : 0;
+            const percentage = ((value / totalAmount) * 100).toFixed(1);
             return percentage >= 1 ? `${value.toLocaleString('vi-VN')}đ (${percentage}%)` : '';
           },
           color: '#fff',
@@ -568,8 +516,6 @@ function updateChartData(response) {
       }
     }
   });
-
-  console.log("Chart created successfully:", window.myChart);
 }
 
 // Tab 3: Biểu đồ (trước đây là tab2)
@@ -577,25 +523,13 @@ window.fetchMonthlyData = async function() {
   const startMonth = parseInt(document.getElementById('startMonth').value);
   const endMonth = parseInt(document.getElementById('endMonth').value);
   const year = new Date().getFullYear();
-  console.log("Fetching monthly data from month: " + startMonth + " to: " + endMonth);
+  if (startMonth > endMonth) return alert("Tháng bắt đầu không thể lớn hơn tháng kết thúc!");
 
-  if (startMonth > endMonth) {
-    alert("Tháng bắt đầu không thể lớn hơn tháng kết thúc!");
-    return;
-  }
-
+  showLoading(true, 'tab3');
   try {
     const response = await fetch(`${apiUrl}?action=getMonthlyData&year=${year}&sheetId=${sheetId}`);
     const monthlyData = await response.json();
-    console.log("Monthly data received: ", monthlyData);
     if (monthlyData.error) throw new Error(monthlyData.error);
-
-    if (!monthlyData || monthlyData.length === 0) {
-      console.warn("No monthly data available for the selected year.");
-      alert("Không có dữ liệu để hiển thị biểu đồ tháng trong năm này.");
-      updateMonthlyChart([]);
-      return;
-    }
 
     const fullYearData = Array.from({ length: 12 }, (_, i) => {
       const month = i + 1;
@@ -611,24 +545,20 @@ window.fetchMonthlyData = async function() {
 
     updateMonthlyChart(filteredData);
   } catch (error) {
-    console.error("Error fetching monthly data: ", error);
-    alert("Lỗi khi lấy dữ liệu biểu đồ tháng: " + error.message);
-    updateMonthlyChart([]);
+    showError("Lỗi khi lấy dữ liệu biểu đồ tháng: " + error.message, 'tab3');
+    const filteredData = Array.from({ length: endMonth - startMonth + 1 }, (_, i) => ({
+      month: startMonth + i,
+      income: 0,
+      expense: 0
+    }));
+    updateMonthlyChart(filteredData);
+  } finally {
+    showLoading(false, 'tab3');
   }
 };
 
 function updateMonthlyChart(filteredData) {
-  const canvas = document.getElementById('monthlyChart');
-  if (!canvas) {
-    console.error("Canvas element 'monthlyChart' not found in DOM!");
-    return;
-  }
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    console.error("Failed to get 2D context for canvas 'monthlyChart'!");
-    return;
-  }
-
+  const ctx = document.getElementById('monthlyChart').getContext('2d');
   if (window.monthlyChart) window.monthlyChart.destroy();
 
   if (!filteredData || filteredData.length === 0) {
@@ -734,11 +664,52 @@ function updateMonthlyChart(filteredData) {
   monthlyLegend.appendChild(column);
 }
 
-// Tab 5: Chi tiêu tháng
+// Khởi tạo
+document.addEventListener('DOMContentLoaded', function() {
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(item => {
+    item.addEventListener('click', () => window.openTab(item.getAttribute('data-tab')));
+  });
+
+  document.getElementById('fetchDataBtn').addEventListener('click', window.fetchData);
+  document.getElementById('fetchMonthlyDataBtn').addEventListener('click', window.fetchMonthlyData);
+  document.getElementById('fetchTransactionsBtn').addEventListener('click', window.fetchTransactions);
+  document.getElementById('addTransactionBtn').addEventListener('click', openAddForm);
+
+  document.getElementById('prevPage').addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      window.fetchTransactions();
+    }
+  });
+  document.getElementById('nextPage').addEventListener('click', () => {
+    const totalPages = Math.ceil((cachedTransactions?.data.length || 0) / transactionsPerPage);
+    if (currentPage < totalPages) {
+      currentPage++;
+      window.fetchTransactions();
+    }
+  });
+
+  const today = new Date();
+  const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  document.getElementById('startDate').value = formatDateToYYYYMMDD(startDate);
+  document.getElementById('endDate').value = formatDateToYYYYMMDD(today);
+  document.getElementById('startMonth').value = 1;
+  document.getElementById('endMonth').value = 12;
+  document.getElementById('transactionDate').value = formatDateToYYYYMMDD(today);
+
+  window.openTab('tab1');
+});
+// Thêm biến toàn cục cho tab mới
+let cachedMonthlyExpenses = null;
+let currentPageMonthly = 1;
+const expensesPerPage = 10;
+
+// Hàm lấy chi tiêu trong tháng
 window.fetchMonthlyExpenses = async function() {
   const month = document.getElementById('expenseMonth').value;
   if (!month) return showError("Vui lòng chọn tháng để xem chi tiêu!", 'tab5');
-  const year = new Date().getFullYear();
+  const year = new Date().getFullYear(); // Hiện tại chỉ lấy năm hiện tại, có thể thêm input năm nếu cần
   const cacheKey = `${year}-${month}`;
 
   if (cachedMonthlyExpenses && cachedMonthlyExpenses.cacheKey === cacheKey) {
@@ -761,6 +732,7 @@ window.fetchMonthlyExpenses = async function() {
   }
 };
 
+// Hàm hiển thị chi tiêu
 function displayMonthlyExpenses(data) {
   const container = document.getElementById('monthlyExpensesContainer');
   const summaryContainer = document.getElementById('monthlyExpenseSummary');
@@ -781,16 +753,16 @@ function displayMonthlyExpenses(data) {
   }
 
   let totalIncome = 0, totalExpense = 0;
-  data.forEach(item => {
-    if (item.type === 'Thu nhập') totalIncome += item.amount;
-    else if (item.type === 'Chi tiêu') totalExpense += item.amount;
-  });
-  const balance = totalIncome - totalExpense;
-  summaryContainer.innerHTML = `
-    <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
-    <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
-    <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
-  `;
+data.forEach(item => {
+  if (item.type === 'Thu nhập') totalIncome += item.amount;
+  else if (item.type === 'Chi tiêu') totalExpense += item.amount;
+});
+const balance = totalIncome - totalExpense;
+summaryContainer.innerHTML = `
+  <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
+  <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
+  <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
+`;
 
   const totalPages = Math.ceil(data.length / expensesPerPage);
   const startIndex = (currentPageMonthly - 1) * expensesPerPage;
@@ -836,7 +808,7 @@ function displayMonthlyExpenses(data) {
   });
 }
 
-// Khởi tạo
+// Cập nhật sự kiện khởi tạo trong DOMContentLoaded
 document.addEventListener('DOMContentLoaded', function() {
   const navItems = document.querySelectorAll('.nav-item');
   navItems.forEach(item => {
@@ -847,7 +819,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('fetchMonthlyDataBtn').addEventListener('click', window.fetchMonthlyData);
   document.getElementById('fetchTransactionsBtn').addEventListener('click', window.fetchTransactions);
   document.getElementById('addTransactionBtn').addEventListener('click', openAddForm);
-  document.getElementById('fetchMonthlyExpensesBtn').addEventListener('click', window.fetchMonthlyExpenses);
+  document.getElementById('fetchMonthlyExpensesBtn').addEventListener('click', window.fetchMonthlyExpenses); // Thêm sự kiện cho nút mới
 
   document.getElementById('prevPage').addEventListener('click', () => {
     if (currentPage > 1) {
@@ -884,7 +856,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('startMonth').value = 1;
   document.getElementById('endMonth').value = 12;
   document.getElementById('transactionDate').value = formatDateToYYYYMMDD(today);
-  document.getElementById('expenseMonth').value = today.getMonth() + 1;
+  document.getElementById('expenseMonth').value = today.getMonth() + 1; // Đặt tháng hiện tại làm mặc định
 
   window.openTab('tab1');
 });

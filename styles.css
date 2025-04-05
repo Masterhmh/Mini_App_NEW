@@ -147,12 +147,21 @@ button:hover {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1rem; /* Khoảng cách giữa nút và text */
+  gap: 1rem;
 }
 
-#prevPage, #nextPage {
-  min-width: 120px; /* Đảm bảo kích thước tối thiểu bằng nhau */
-  padding: 0.6rem 1.5rem; /* Đồng nhất padding */
+#paginationMonthly {
+  text-align: center;
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pagination-btn {
+  min-width: 120px;
+  padding: 0.6rem 1.5rem;
   background: linear-gradient(135deg, #16A34A, #4ADE80);
   color: white;
   border: none;
@@ -163,19 +172,18 @@ button:hover {
   transition: transform 0.2s;
 }
 
-#prevPage:hover, #nextPage:hover {
+.pagination-btn:hover {
   transform: translateY(-2px);
 }
 
-#prevPage:disabled, #nextPage:disabled {
+.pagination-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
 }
 
-/* Điều chỉnh cho màn hình nhỏ */
 @media (max-width: 600px) {
-  #prevPage, #nextPage {
+  .pagination-btn {
     min-width: 100px;
     padding: 0.6rem 1rem;
     font-size: 0.85rem;

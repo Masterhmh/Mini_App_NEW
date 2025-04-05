@@ -382,6 +382,9 @@ window.fetchData = async function() {
 
   try {
     const financialResponse = await fetch(`${apiUrl}?action=getFinancialSummary&startDate=${startDateInput}&endDate=${endDateInput}&sheetId=${sheetId}`);
+    if (!financialResponse.ok) {
+      throw new Error(`HTTP error! Status: ${financialResponse.status}`);
+    }
     const financialData = await financialResponse.json();
     console.log("Financial data received: ", financialData);
     if (financialData.error) {
@@ -390,6 +393,9 @@ window.fetchData = async function() {
     updateFinancialData(financialData);
 
     const chartResponse = await fetch(`${apiUrl}?action=getChartData&startDate=${startDateInput}&endDate=${endDateInput}&sheetId=${sheetId}`);
+    if (!chartResponse.ok) {
+      throw new Error(`HTTP error! Status: ${chartResponse.status}`);
+    }
     const chartData = await chartResponse.json();
     console.log("Chart data received: ", chartData);
     if (chartData.error) {
@@ -465,15 +471,19 @@ function updateFinancialData(data) {
   `;
 }
 function updateChartData(response) {
+  const ctx = document.getElementById('myChart').getContext('2d');
+  // Kiểm tra kỹ hơn trước khi gọi destroy
+  if (window.myChart && typeof window.myChart.destroy === 'function') {
+    window.myChart.destroy();
+  }
+
   if (response.error) {
     alert(response.error);
-    if (window.myChart) window.myChart.destroy();
     return;
   }
+
   const chartData = response.chartData;
   const categories = response.categories;
-  const ctx = document.getElementById('myChart').getContext('2d');
-  if (window.myChart) window.myChart.destroy();
   const totalAmount = chartData.reduce((sum, item) => sum + item.amount, 0);
   const backgroundColors = [
     '#FF6B6B', '#FF9F45', '#FFE156', '#7DC95E', '#40C4FF',
@@ -484,12 +494,14 @@ function updateChartData(response) {
     '#D1B3E0', '#F78F8F', '#F6B17A', '#F4A261', '#FF6392',
     '#66D9E8', '#FF85A1', '#6A0572', '#FC7A57', '#A29BFE'
   ];
+
   const customLegend = document.getElementById('customLegend');
   customLegend.innerHTML = '';
   const leftColumn = document.createElement('div');
   leftColumn.className = 'custom-legend-column';
   const rightColumn = document.createElement('div');
   rightColumn.className = 'custom-legend-column';
+
   chartData.forEach((item, i) => {
     const index = categories.indexOf(item.category);
     const color = backgroundColors[index % backgroundColors.length];
@@ -506,8 +518,10 @@ function updateChartData(response) {
     if (i % 2 === 0) leftColumn.appendChild(legendItem);
     else rightColumn.appendChild(legendItem);
   });
+
   customLegend.appendChild(leftColumn);
   customLegend.appendChild(rightColumn);
+
   window.myChart = new Chart(ctx, {
     type: 'pie',
     data: {
@@ -560,7 +574,6 @@ function updateChartData(response) {
     }
   });
 }
-
 // Tab 3: Biểu đồ (trước đây là tab2)
 window.fetchMonthlyData = async function() {
   const startMonth = parseInt(document.getElementById('startMonth').value);
@@ -574,6 +587,9 @@ window.fetchMonthlyData = async function() {
 
   try {
     const response = await fetch(`${apiUrl}?action=getMonthlyData&year=${year}&sheetId=${sheetId}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
     const monthlyData = await response.json();
     console.log("Monthly data received: ", monthlyData);
     if (monthlyData.error) {
@@ -604,11 +620,13 @@ window.fetchMonthlyData = async function() {
     updateMonthlyChart(filteredData);
   }
 };
-
 function updateMonthlyChart(filteredData) {
   console.log("Updating monthly chart with data: ", filteredData);
   const ctx = document.getElementById('monthlyChart').getContext('2d');
-  if (window.monthlyChart) window.monthlyChart.destroy();
+  // Kiểm tra kỹ hơn trước khi gọi destroy
+  if (window.monthlyChart && typeof window.monthlyChart.destroy === 'function') {
+    window.monthlyChart.destroy();
+  }
 
   if (!filteredData || filteredData.length === 0) {
     window.monthlyChart = new Chart(ctx, {

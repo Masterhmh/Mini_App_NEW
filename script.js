@@ -380,6 +380,7 @@ window.fetchData = async function() {
     return;
   }
 
+  showLoading(true, 'tab2'); // Hiển thị loading
   try {
     const financialResponse = await fetch(`${apiUrl}?action=getFinancialSummary&startDate=${startDateInput}&endDate=${endDateInput}&sheetId=${sheetId}`);
     if (!financialResponse.ok) {
@@ -406,6 +407,8 @@ window.fetchData = async function() {
     console.error("Error fetching data: ", error);
     alert("Lỗi khi lấy dữ liệu: " + error.message);
     updateFinancialData({ error: true });
+  } finally {
+    showLoading(false, 'tab2'); // Ẩn loading
   }
 };
 
@@ -585,6 +588,7 @@ window.fetchMonthlyData = async function() {
     return;
   }
 
+  showLoading(true, 'tab3'); // Hiển thị loading
   try {
     const response = await fetch(`${apiUrl}?action=getMonthlyData&year=${year}&sheetId=${sheetId}`);
     if (!response.ok) {
@@ -618,6 +622,8 @@ window.fetchMonthlyData = async function() {
       expense: 0
     }));
     updateMonthlyChart(filteredData);
+  } finally {
+    showLoading(false, 'tab3'); // Ẩn loading
   }
 };
 function updateMonthlyChart(filteredData) {

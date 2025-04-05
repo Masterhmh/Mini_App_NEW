@@ -840,7 +840,9 @@ function displayMonthlyExpenses(data) {
   if (data.error || !data || data.length === 0) {
     container.innerHTML = '<div>Không có chi tiêu trong tháng này</div>';
     summaryContainer.innerHTML = `
+      <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
       <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+      <div class="stat-box balance"><div class="title">Số dư</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
     `;
     pageInfo.textContent = '';
     prevPageBtn.disabled = true;
@@ -849,16 +851,16 @@ function displayMonthlyExpenses(data) {
   }
 
   let totalIncome = 0, totalExpense = 0;
-data.forEach(item => {
-  if (item.type === 'Thu nhập') totalIncome += item.amount;
-  else if (item.type === 'Chi tiêu') totalExpense += item.amount;
-});
-const balance = totalIncome - totalExpense;
-summaryContainer.innerHTML = `
-  <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
-  <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
-  <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
-`;
+  data.forEach(item => {
+    if (item.type === 'Thu nhập') totalIncome += item.amount;
+    else if (item.type === 'Chi tiêu') totalExpense += item.amount;
+  });
+  const balance = totalIncome - totalExpense;
+  summaryContainer.innerHTML = `
+    <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
+    <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
+    <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
+  `;
 
   const totalPages = Math.ceil(data.length / expensesPerPage);
   const startIndex = (currentPageMonthly - 1) * expensesPerPage;

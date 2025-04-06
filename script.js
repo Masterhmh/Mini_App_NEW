@@ -283,47 +283,22 @@ function closeEditForm() { document.getElementById('editModal').style.display = 
 function closeAddForm() { document.getElementById('addModal').style.display = 'none'; }
 
 async function saveTransaction(updatedTransaction) {
-  showLoading(true, activeTab);
+  showLoading(true, 'tab1');
   try {
-    updatedTransaction.action = 'correctContent'; // Sửa action thành correctContent
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedTransaction)
     });
     const result = await response.json();
-    if (!result.success) throw new Error(result.error || 'Lỗi không xác định');
-
-    // Cập nhật cache và làm mới giao diện
-    const updatedData = {
-      id: updatedTransaction.id,
-      date: updatedTransaction.date,
-      content: updatedTransaction.content,
-      amount: updatedTransaction.amount,
-      type: updatedTransaction.type,
-      category: updatedTransaction.category,
-      note: updatedTransaction.note
-    };
-
-    if (activeTab === 'tab1') {
-      cachedTransactions.data = cachedTransactions.data.map(item =>
-        String(item.id) === String(updatedTransaction.id) ? updatedData : item
-      );
-      showSuccess("Cập nhật giao dịch thành công!", 'tab1');
-      displayTransactions(cachedTransactions.data);
-    } else {
-      cachedMonthlyExpenses.data = cachedMonthlyExpenses.data.map(item =>
-        String(item.id) === String(updatedTransaction.id) ? updatedData : item
-      );
-      showSuccess("Cập nhật giao dịch thành công!", 'tab5');
-      displayMonthlyExpenses(cachedMonthlyExpenses.data);
-    }
-
+    if (result.error) throw new Error(result.error);
+    showSuccess("Cập nhật giao dịch thành công!", 'tab1');
     closeEditForm();
+    window.fetchTransactions();
   } catch (error) {
-    showError("Lỗi khi cập nhật giao dịch: " + error.message, activeTab);
+    showError("Lỗi khi cập nhật giao dịch: " + error.message, 'tab1');
   } finally {
-    showLoading(false, activeTab);
+    showLoading(false, 'tab1');
   }
 }
 
@@ -349,34 +324,23 @@ async function addTransaction(newTransaction) {
 
 async function deleteTransaction(transactionId) {
   if (!confirm("Bạn có chắc chắn muốn xóa giao dịch này?")) return;
-
-  showLoading(true, activeTab);
+  showLoading(true, 'tab1');
   try {
-    const transaction = (activeTab === 'tab1' ? cachedTransactions.data : cachedMonthlyExpenses.data).find(item => String(item.id) === String(transactionId));
+    const transaction = cachedTransactions.data.find(item => String(item.id) === String(transactionId));
     if (!transaction) throw new Error("Không tìm thấy giao dịch để xóa!");
-
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'deleteTransaction', id: transactionId, date: transaction.date })
+      body: JSON.stringify({ action: 'deleteTransaction', id: transactionId, sheetId: sheetId, date: transaction.date })
     });
     const result = await response.json();
     if (result.error) throw new Error(result.error);
-
-    // Cập nhật cache và làm mới giao diện
-    if (activeTab === 'tab1') {
-      cachedTransactions.data = cachedTransactions.data.filter(item => String(item.id) !== String(transactionId));
-      showSuccess("Xóa giao dịch thành công!", 'tab1');
-      displayTransactions(cachedTransactions.data);
-    } else {
-      cachedMonthlyExpenses.data = cachedMonthlyExpenses.data.filter(item => String(item.id) !== String(transactionId));
-      showSuccess("Xóa giao dịch thành công!", 'tab5');
-      displayMonthlyExpenses(cachedMonthlyExpenses.data);
-    }
+    showSuccess("Xóa giao dịch thành công!", 'tab1');
+    window.fetchTransactions();
   } catch (error) {
-    showError("Lỗi khi xóa giao dịch: " + error.message, activeTab);
+    showError("Lỗi khi xóa giao dịch: " + error.message, 'tab1');
   } finally {
-    showLoading(false, activeTab);
+    showLoading(false, 'tab1');
   }
 }
 

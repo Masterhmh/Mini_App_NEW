@@ -805,7 +805,7 @@ const expensesPerPage = 10;
 window.fetchMonthlyExpenses = async function() {
   const month = document.getElementById('expenseMonth').value;
   if (!month) return showError("Vui lòng chọn tháng để xem chi tiêu!", 'tab5');
-  const year = new Date().getFullYear(); // Hiện tại chỉ lấy năm hiện tại, có thể thêm input năm nếu cần
+  const year = new Date().getFullYear();
   const cacheKey = `${year}-${month}`;
 
   if (cachedMonthlyExpenses && cachedMonthlyExpenses.cacheKey === cacheKey) {
@@ -818,8 +818,15 @@ window.fetchMonthlyExpenses = async function() {
     const response = await fetch(`${apiUrl}?action=getExpensesByMonth&month=${month}&year=${year}&sheetId=${sheetId}`);
     const expenseData = await response.json();
     if (expenseData.error) throw new Error(expenseData.error);
-    cachedMonthlyExpenses = { cacheKey, data: expenseData };
-    displayMonthlyExpenses(expenseData);
+
+    // Lọc chỉ các giao dịch "Chi tiêu" ngay từ đầu và lưu vào cache
+    const filteredExpenses = {
+      totalIncome: expenseData.totalIncome,
+      totalExpense: expenseData.totalExpense,
+      transactions: expenseData.transactions.filter(item => item.type === 'Chi tiêu')
+    };
+    cachedMonthlyExpenses = { cacheKey, data: filteredExpenses };
+    displayMonthlyExpenses(filteredExpenses);
   } catch (error) {
     showError("Lỗi khi lấy dữ liệu chi tiêu: " + error.message, 'tab5');
     displayMonthlyExpenses({ error: true });
@@ -850,6 +857,68 @@ function displayMonthlyExpenses(data) {
     return;
   }
 
+  const totalIncome = data.totalIncome;
+  const totalExpense = data.totalExpense;
+  const balance = totalIncome - totalExpense;
+
+  summaryContainer.innerHTML = `
+    <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
+    <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
+    <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
+  `;
+
+  const expenseData = data.transactions; // Dữ liệu đã được lọc từ fetchMonthlyExpenses
+  if (expenseData.length === 0) {
+    container.innerHTML = '<div>Không có chi tiêu trong tháng này</div>';
+    pageInfo.textContent = '';
+    prevPageBtn.disabled = true;
+    nextPageBtn.disabled = true;
+    return;
+  }
+
+  const totalPages = Math.ceil(expenseData.length / expensesPerPage);
+  const startIndex = (currentPageMonthly - 1) * expensesPerPage;
+  const endIndex = startIndex + expensesPerPage;
+  const paginatedData = expenseData.slice(startIndex, endIndex);
+
+  paginatedData.forEach(item => {
+    const expenseBox = document.createElement('div');
+    expenseBox.className = 'transaction-box';
+    expenseBox.innerHTML = `
+      <div style="display: flex; justify-content: space-between; width: 100%;">
+        <div style="flex: 1;">
+          <div class="date">${formatDate(item.date)}</div>
+          <div class="amount" style="color: #EF4444">${item.amount.toLocaleString('vi-VN')}đ</div>
+          <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
+        </div>
+        <div style="flex: 1; text-align: right;">
+          <div class="type expense">Phân loại: ${item.type}</div>
+          <div class="category">Phân loại chi tiết: ${item.category}</div>
+        </div>
+      </div>
+      <div style="margin-top: 0.5rem;">
+        <button class="edit-btn" data-id="${item.id}" style="background: #FFA500; color: white; padding: 0.3rem 0.8rem; border-radius: 8px;">Sửa</button>
+        <button class="delete-btn" data-id="${item.id}" style="background: #EF4444; color: white; padding: 0.3rem 0.8rem; border-radius: 8px; margin-left: 0.5rem;">Xóa</button>
+      </div>
+    `;
+    container.appendChild(expenseBox);
+  });
+
+  pageInfo.textContent = `Trang ${currentPageMonthly} / ${totalPages}`;
+  prevPageBtn.disabled = currentPageMonthly === 1;
+  nextPageBtn.disabled = currentPageMonthly === totalPages;
+
+  document.querySelectorAll('.edit-btn').forEach(button => {
+    const expenseId = button.getAttribute('data-id');
+    const expense = expenseData.find(item => String(item.id) === String(expenseId));
+    if (!expense) return console.error(`Không tìm thấy chi tiêu với ID: ${expenseId}`);
+    button.addEventListener('click', () => openEditForm(expense));
+  });
+
+  document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', () => deleteTransaction(button.getAttribute('data-id')));
+  });
+}
   // Sử dụng totalIncome và totalExpense từ API
   const totalIncome = data.totalIncome;
   const totalExpense = data.totalExpense;
@@ -950,12 +1019,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   document.getElementById('nextPageMonthly').addEventListener('click', () => {
-    const totalPages = Math.ceil((cachedMonthlyExpenses?.data.length || 0) / expensesPerPage);
-    if (currentPageMonthly < totalPages) {
-      currentPageMonthly++;
-      window.fetchMonthlyExpenses();
-    }
-  });
+  const totalPages = Math.ceil((cachedMonthlyExpenses?.data.transactions.length || 0) / expensesPerPage);
+  if (currentPageMonthly < totalPages) {
+    currentPageMonthly++;
+    window.fetchMonthlyExpenses();
+  }
+});
 
   const today = new Date();
   const startDate = new Date(today.getFullYear(), today.getMonth(), 1);

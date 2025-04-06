@@ -27,7 +27,11 @@ body {
   font-size: 1rem;
   color: var(--text-color);
 }
-
+.modal-content input[readonly] {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
+  color: #666;
+}
 .content-wrapper { 
   max-width: 700px; 
   width: 100%; 

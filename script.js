@@ -807,6 +807,7 @@ function displayMonthlyExpenses(data) {
   const nextPageBtn = document.getElementById('nextPageMonthly');
   container.innerHTML = '';
 
+  // Kiểm tra dữ liệu đầu vào
   if (!data || data.error || !Array.isArray(data) || data.length === 0) {
     container.innerHTML = '<div>Không có giao dịch trong tháng này</div>';
     summaryContainer.innerHTML = `
@@ -820,41 +821,52 @@ function displayMonthlyExpenses(data) {
     return;
   }
 
+  // Tính toán tổng thu nhập, chi tiêu và số dư
   let totalIncome = 0, totalExpense = 0;
   data.forEach(item => {
-    if (item.type === 'Thu nhập') totalIncome += item.amount;
-    else if (item.type === 'Chi tiêu') totalExpense += item.amount;
+    if (item.type === 'Thu nhập') totalIncome += Number(item.amount) || 0;
+    else if (item.type === 'Chi tiêu') totalExpense += Number(item.amount) || 0;
   });
   const balance = totalIncome - totalExpense;
 
+  // Hiển thị tổng hợp
   summaryContainer.innerHTML = `
     <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
     <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
     <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
   `;
 
+  // Hiển thị số lượng giao dịch
   const totalTransactions = data.length;
   container.innerHTML = `<div class="notification">Bạn có ${totalTransactions} giao dịch trong tháng</div>`;
 
+  // Phân trang
   const totalPages = Math.ceil(data.length / expensesPerPage);
   const startIndex = (currentPageMonthly - 1) * expensesPerPage;
   const endIndex = startIndex + expensesPerPage;
   const paginatedData = data.slice(startIndex, endIndex);
 
+  // Hiển thị danh sách giao dịch
   paginatedData.forEach((item, index) => {
     const transactionBox = document.createElement('div');
     transactionBox.className = 'transaction-box';
     const amountColor = item.type === 'Thu nhập' ? '#10B981' : '#EF4444';
     const typeClass = item.type === 'Thu nhập' ? 'income' : 'expense';
     const transactionNumber = startIndex + index + 1;
+
+    // Đảm bảo các trường tồn tại
+    const content = item.content || 'Không có nội dung';
+    const note = item.note ? ` (${item.note})` : '';
+    const category = item.category || 'Không có phân loại chi tiết';
+
     transactionBox.innerHTML = `
       <div style="display: flex; justify-content: space-between; width: 100%;">
         <div style="flex: 1;">
           <div class="date">${formatDate(item.date)}</div>
-          <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
-          <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
+          <div class="amount" style="color: ${amountColor}">${(Number(item.amount) || 0).toLocaleString('vi-VN')}đ</div>
+          <div class="content">Nội dung: ${content}${note}</div>
           <div class="type ${typeClass}">Phân loại: ${item.type}</div>
-          <div class="category">Phân loại chi tiết: ${item.category}</div>
+          <div class="category">Phân loại chi tiết: ${category}</div>
         </div>
         <div style="flex: 1; text-align: right;">
           <div class="number">STT của giao dịch: ${transactionNumber}</div>
@@ -869,19 +881,25 @@ function displayMonthlyExpenses(data) {
     container.appendChild(transactionBox);
   });
 
+  // Cập nhật phân trang
   pageInfo.textContent = `Trang ${currentPageMonthly} / ${totalPages}`;
   prevPageBtn.disabled = currentPageMonthly === 1;
   nextPageBtn.disabled = currentPageMonthly === totalPages;
 
+  // Gắn sự kiện cho nút "Sửa" và "Xóa"
   document.querySelectorAll('.edit-btn').forEach(button => {
     const transactionId = button.getAttribute('data-id');
     const transaction = data.find(item => String(item.id) === String(transactionId));
-    if (!transaction) return console.error(`Không tìm thấy giao dịch với ID: ${transactionId}`);
-    button.addEventListener('click', () => openEditForm(transaction));
+    if (transaction) {
+      button.addEventListener('click', () => openEditForm(transaction));
+    } else {
+      console.error(`Không tìm thấy giao dịch với ID: ${transactionId}`);
+    }
   });
 
   document.querySelectorAll('.delete-btn').forEach(button => {
-    button.addEventListener('click', () => deleteTransaction(button.getAttribute('data-id')));
+    const transactionId = button.getAttribute('data-id');
+    button.addEventListener('click', () => deleteTransaction(transactionId));
   });
 }
 

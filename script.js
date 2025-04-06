@@ -807,6 +807,7 @@ function displayMonthlyExpenses(data) {
   const nextPageBtn = document.getElementById('nextPageMonthly');
   container.innerHTML = '';
 
+  // Kiểm tra dữ liệu trả về
   if (!data || data.error || !Array.isArray(data) || data.length === 0) {
     container.innerHTML = '<div>Không có giao dịch trong tháng này</div>';
     summaryContainer.innerHTML = `
@@ -820,6 +821,7 @@ function displayMonthlyExpenses(data) {
     return;
   }
 
+  // Tính tổng thu nhập và chi tiêu
   let totalIncome = 0, totalExpense = 0;
   data.forEach(item => {
     if (item.type === 'Thu nhập') totalIncome += item.amount;
@@ -853,12 +855,12 @@ function displayMonthlyExpenses(data) {
           <div class="date">${formatDate(item.date)}</div>
           <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
           <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
-          <div class="type ${typeClass}">Phân loại: ${item.type}</div>
-          <div class="category">Phân loại chi tiết: ${item.category}</div>
+          <div class="id">ID: ${item.id}</div>
+          <div class="number">STT: ${transactionNumber}</div>
         </div>
         <div style="flex: 1; text-align: right;">
-          <div class="number">STT của giao dịch: ${transactionNumber}</div>
-          <div class="id">ID của giao dịch: ${item.id}</div>
+          <div class="type ${typeClass}">Phân loại: ${item.type}</div>
+          <div class="category">Phân loại chi tiết: ${item.category}</div>
         </div>
       </div>
       <div style="margin-top: 0.5rem;">

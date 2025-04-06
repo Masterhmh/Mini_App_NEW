@@ -110,40 +110,18 @@ window.fetchTransactions = async function() {
 
 function displayTransactions(data) {
   const container = document.getElementById('transactionsContainer');
-  const summaryContainer = document.getElementById('dailySummary');
   const pageInfo = document.getElementById('pageInfo');
   const prevPageBtn = document.getElementById('prevPage');
   const nextPageBtn = document.getElementById('nextPage');
   container.innerHTML = '';
 
-  if (data.error || !data || data.length === 0) {
-    container.innerHTML = '<div>Không có giao dịch trong ngày này</div>';
-    summaryContainer.innerHTML = `
-      <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-      <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-      <div class="stat-box balance"><div class="title">Số dư</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-    `;
+  if (!data || data.error || !Array.isArray(data) || data.length === 0) {
+    container.innerHTML = '<div>Không có giao dịch nào trong ngày này</div>';
     pageInfo.textContent = '';
     prevPageBtn.disabled = true;
     nextPageBtn.disabled = true;
     return;
   }
-
-  let totalIncome = 0, totalExpense = 0;
-  data.forEach(item => {
-    if (item.type === 'Thu nhập') totalIncome += item.amount;
-    else if (item.type === 'Chi tiêu') totalExpense += item.amount;
-  });
-  const balance = totalIncome - totalExpense;
-
-  summaryContainer.innerHTML = `
-    <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
-    <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
-    <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
-  `;
-
-  const totalTransactions = data.length;
-  container.innerHTML = `<div class="notification">Bạn có ${totalTransactions} giao dịch trong ngày</div>`;
 
   const totalPages = Math.ceil(data.length / transactionsPerPage);
   const startIndex = (currentPage - 1) * transactionsPerPage;
@@ -155,15 +133,15 @@ function displayTransactions(data) {
     transactionBox.className = 'transaction-box';
     const amountColor = item.type === 'Thu nhập' ? '#10B981' : '#EF4444';
     const typeClass = item.type === 'Thu nhập' ? 'income' : 'expense';
-    const transactionNumber = startIndex + index + 1; // Số thứ tự giao dịch
+    const transactionNumber = startIndex + index + 1;
     transactionBox.innerHTML = `
       <div style="display: flex; justify-content: space-between; width: 100%;">
         <div style="flex: 1;">
           <div class="date">${formatDate(item.date)}</div>
           <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
           <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
-          <div class="id">ID: ${item.id}</div>
-          <div class="number">STT: ${transactionNumber}</div>
+          <div class="number">STT của giao dịch: ${transactionNumber}</div>
+          <div class="id">ID của giao dịch: ${item.id}</div>
         </div>
         <div style="flex: 1; text-align: right;">
           <div class="type ${typeClass}">Phân loại: ${item.type}</div>
@@ -888,8 +866,8 @@ function displayMonthlyExpenses(data) {
           <div class="date">${formatDate(item.date)}</div>
           <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
           <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
-          <div class="id">ID: ${item.id}</div>
-          <div class="number">STT: ${transactionNumber}</div>
+          <div class="number">STT của giao dịch: ${transactionNumber}</div>
+          <div class="id">ID của giao dịch: ${item.id}</div>
         </div>
         <div style="flex: 1; text-align: right;">
           <div class="type ${typeClass}">Phân loại: ${item.type}</div>
@@ -919,7 +897,6 @@ function displayMonthlyExpenses(data) {
     button.addEventListener('click', () => deleteTransaction(button.getAttribute('data-id')));
   });
 }
-
 
 // Cập nhật sự kiện khởi tạo trong DOMContentLoaded
 document.addEventListener('DOMContentLoaded', function() {

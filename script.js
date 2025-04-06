@@ -114,16 +114,15 @@ function displayTransactions(data) {
   const pageInfo = document.getElementById('pageInfo');
   const prevPageBtn = document.getElementById('prevPage');
   const nextPageBtn = document.getElementById('nextPage');
-  console.log("transactionsPerPage hiện tại:", transactionsPerPage); // Kiểm tra giá trị
   container.innerHTML = '';
 
   if (data.error || !data || data.length === 0) {
     container.innerHTML = '<div>Không có giao dịch trong ngày này</div>';
     summaryContainer.innerHTML = `
-  <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-  <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-  <div class="stat-box balance"><div class="title">Số dư</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
-`;
+      <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+      <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+      <div class="stat-box balance"><div class="title">Số dư</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+    `;
     pageInfo.textContent = '';
     prevPageBtn.disabled = true;
     nextPageBtn.disabled = true;
@@ -136,31 +135,35 @@ function displayTransactions(data) {
     else if (item.type === 'Chi tiêu') totalExpense += item.amount;
   });
   const balance = totalIncome - totalExpense;
+
   summaryContainer.innerHTML = `
     <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
     <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
     <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
   `;
 
-const totalPages = Math.ceil(data.length / transactionsPerPage);
-const startIndex = (currentPage - 1) * transactionsPerPage;
-const endIndex = startIndex + transactionsPerPage;
-const paginatedData = data.slice(startIndex, endIndex);
-console.log("Total pages:", totalPages);
-console.log("Start index:", startIndex, "End index:", endIndex);
-console.log("Số giao dịch hiển thị:", paginatedData.length);
-  
-  paginatedData.forEach(item => {
+  const totalTransactions = data.length;
+  container.innerHTML = `<div class="notification">Bạn có ${totalTransactions} giao dịch trong ngày</div>`;
+
+  const totalPages = Math.ceil(data.length / transactionsPerPage);
+  const startIndex = (currentPage - 1) * transactionsPerPage;
+  const endIndex = startIndex + transactionsPerPage;
+  const paginatedData = data.slice(startIndex, endIndex);
+
+  paginatedData.forEach((item, index) => {
     const transactionBox = document.createElement('div');
     transactionBox.className = 'transaction-box';
     const amountColor = item.type === 'Thu nhập' ? '#10B981' : '#EF4444';
     const typeClass = item.type === 'Thu nhập' ? 'income' : 'expense';
+    const transactionNumber = startIndex + index + 1; // Số thứ tự giao dịch
     transactionBox.innerHTML = `
       <div style="display: flex; justify-content: space-between; width: 100%;">
         <div style="flex: 1;">
           <div class="date">${formatDate(item.date)}</div>
-                    <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
+          <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
           <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
+          <div class="id">ID: ${item.id}</div>
+          <div class="number">STT: ${transactionNumber}</div>
         </div>
         <div style="flex: 1; text-align: right;">
           <div class="type ${typeClass}">Phân loại: ${item.type}</div>
@@ -190,7 +193,6 @@ console.log("Số giao dịch hiển thị:", paginatedData.length);
     button.addEventListener('click', () => deleteTransaction(button.getAttribute('data-id')));
   });
 }
-
 async function fetchCategories() {
   try {
     const response = await fetch(`${apiUrl}?action=getCategories&sheetId=${sheetId}`);
@@ -802,10 +804,11 @@ let currentPageMonthly = 1;
 const expensesPerPage = 10;
 
 // Hàm lấy chi tiêu trong tháng
+// Hàm lấy giao dịch trong tháng
 window.fetchMonthlyExpenses = async function() {
   const month = document.getElementById('expenseMonth').value;
-  if (!month) return showError("Vui lòng chọn tháng để xem chi tiêu!", 'tab5');
-  const year = new Date().getFullYear(); // Hiện tại chỉ lấy năm hiện tại, có thể thêm input năm nếu cần
+  if (!month) return showError("Vui lòng chọn tháng để xem giao dịch!", 'tab5');
+  const year = new Date().getFullYear(); // Hiện tại chỉ lấy năm hiện tại
   const cacheKey = `${year}-${month}`;
 
   if (cachedMonthlyExpenses && cachedMonthlyExpenses.cacheKey === cacheKey) {
@@ -815,19 +818,105 @@ window.fetchMonthlyExpenses = async function() {
 
   showLoading(true, 'tab5');
   try {
-    const response = await fetch(`${apiUrl}?action=getExpensesByMonth&month=${month}&year=${year}&sheetId=${sheetId}`);
-    const expenseData = await response.json();
-    if (expenseData.error) throw new Error(expenseData.error);
-    cachedMonthlyExpenses = { cacheKey, data: expenseData };
-    displayMonthlyExpenses(expenseData);
+    const response = await fetch(`${apiUrl}?action=getTransactionsByMonth&month=${month}&year=${year}&sheetId=${sheetId}`);
+    const transactionData = await response.json();
+    if (transactionData.error) throw new Error(transactionData.error);
+    cachedMonthlyExpenses = { cacheKey, data: transactionData };
+    displayMonthlyExpenses(transactionData);
   } catch (error) {
-    showError("Lỗi khi lấy dữ liệu chi tiêu: " + error.message, 'tab5');
+    showError("Lỗi khi lấy dữ liệu giao dịch: " + error.message, 'tab5');
     displayMonthlyExpenses({ error: true });
   } finally {
     showLoading(false, 'tab5');
   }
 };
 
+// Hàm hiển thị giao dịch trong tháng
+function displayMonthlyExpenses(data) {
+  const container = document.getElementById('monthlyExpensesContainer');
+  const summaryContainer = document.getElementById('monthlyExpenseSummary');
+  const pageInfo = document.getElementById('pageInfoMonthly');
+  const prevPageBtn = document.getElementById('prevPageMonthly');
+  const nextPageBtn = document.getElementById('nextPageMonthly');
+  container.innerHTML = '';
+
+  if (data.error || !data || data.length === 0) {
+    container.innerHTML = '<div>Không có giao dịch trong tháng này</div>';
+    summaryContainer.innerHTML = `
+      <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+      <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+      <div class="stat-box balance"><div class="title">Số dư</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+    `;
+    pageInfo.textContent = '';
+    prevPageBtn.disabled = true;
+    nextPageBtn.disabled = true;
+    return;
+  }
+
+  let totalIncome = 0, totalExpense = 0;
+  data.forEach(item => {
+    if (item.type === 'Thu nhập') totalIncome += item.amount;
+    else if (item.type === 'Chi tiêu') totalExpense += item.amount;
+  });
+  const balance = totalIncome - totalExpense;
+
+  summaryContainer.innerHTML = `
+    <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
+    <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
+    <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
+  `;
+
+  const totalTransactions = data.length;
+  container.innerHTML = `<div class="notification">Bạn có ${totalTransactions} giao dịch trong tháng</div>`;
+
+  const totalPages = Math.ceil(data.length / expensesPerPage);
+  const startIndex = (currentPageMonthly - 1) * expensesPerPage;
+  const endIndex = startIndex + expensesPerPage;
+  const paginatedData = data.slice(startIndex, endIndex);
+
+  paginatedData.forEach((item, index) => {
+    const transactionBox = document.createElement('div');
+    transactionBox.className = 'transaction-box';
+    const amountColor = item.type === 'Thu nhập' ? '#10B981' : '#EF4444';
+    const typeClass = item.type === 'Thu nhập' ? 'income' : 'expense';
+    const transactionNumber = startIndex + index + 1; // Số thứ tự giao dịch
+    transactionBox.innerHTML = `
+      <div style="display: flex; justify-content: space-between; width: 100%;">
+        <div style="flex: 1;">
+          <div class="date">${formatDate(item.date)}</div>
+          <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
+          <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
+          <div class="id">ID: ${item.id}</div>
+          <div class="number">STT: ${transactionNumber}</div>
+        </div>
+        <div style="flex: 1; text-align: right;">
+          <div class="type ${typeClass}">Phân loại: ${item.type}</div>
+          <div class="category">Phân loại chi tiết: ${item.category}</div>
+        </div>
+      </div>
+      <div style="margin-top: 0.5rem;">
+        <button class="edit-btn" data-id="${item.id}" style="background: #FFA500; color: white; padding: 0.3rem 0.8rem; border-radius: 8px;">Sửa</button>
+        <button class="delete-btn" data-id="${item.id}" style="background: #EF4444; color: white; padding: 0.3rem 0.8rem; border-radius: 8px; margin-left: 0.5rem;">Xóa</button>
+      </div>
+    `;
+    container.appendChild(transactionBox);
+  });
+
+  pageInfo.textContent = `Trang ${currentPageMonthly} / ${totalPages}`;
+  prevPageBtn.disabled = currentPageMonthly === 1;
+  nextPageBtn.disabled = currentPageMonthly === totalPages;
+
+  document.querySelectorAll('.edit-btn').forEach(button => {
+    const transactionId = button.getAttribute('data-id');
+    const transaction = data.find(item => String(item.id) === String(transactionId));
+    if (!transaction) return console.error(`Không tìm thấy giao dịch với ID: ${transactionId}`);
+    button.addEventListener('click', () => openEditForm(transaction));
+  });
+
+  document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', () => deleteTransaction(button.getAttribute('data-id')));
+  });
+}
 // Hàm hiển thị chi tiêu
 function displayMonthlyExpenses(data) {
   const container = document.getElementById('monthlyExpensesContainer');

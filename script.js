@@ -1004,6 +1004,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
+  // Điền ngày hiện tại và khoảng thời gian mặc định khi mở Mini App
+  const today = new Date();
+  const formattedToday = formatDateToYYYYMMDD(today); // Ngày hiện tại: YYYY-MM-DD
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1); // Ngày đầu tháng
+  const formattedFirstDay = formatDateToYYYYMMDD(firstDayOfMonth);
+
+  // Tab 1: Điền ngày hiện tại vào transactionDate
+  const transactionDateInput = document.getElementById('transactionDate');
+  if (transactionDateInput) {
+    transactionDateInput.value = formattedToday;
+    // window.fetchTransactions(); // Tự động tải dữ liệu (tuỳ chọn)
+  }
+
+  // Tab 2: Điền ngày đầu tháng vào startDate và ngày hiện tại vào endDate
+  const startDateInput = document.getElementById('startDate');
+  const endDateInput = document.getElementById('endDate');
+  if (startDateInput && endDateInput) {
+    startDateInput.value = formattedFirstDay;
+    endDateInput.value = formattedToday;
+    // window.fetchData(); // Tự động tải dữ liệu thống kê (tuỳ chọn)
+  }
+
   populateSearchCategories();
-  window.openTab('tab1');
+  window.openTab('tab1'); // Mặc định mở tab Giao dịch
 });

@@ -728,27 +728,3 @@ canvas#monthlyChart {
     max-width: 450px;
   }
 }
-
-/* Đảm bảo input-group hỗ trợ nhiều trường nhập liệu */
-.input-group {
-  flex-wrap: wrap; /* Cho phép xuống dòng nếu màn hình nhỏ */
-  gap: 0.5rem;
-}
-
-.input-group label {
-  font-size: 0.9rem;
-  color: var(--text-color);
-}
-
-@media (max-width: 600px) {
-  .input-group {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .input-group select,
-  .input-group input {
-    width: 100%;
-    max-width: none;
-  }
-}

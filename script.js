@@ -161,15 +161,69 @@ function displayMonthlyExpenses(data) {
 
 // Hàm hiển thị cho tab 6 (Tìm kiếm giao dịch)
 function displaySearchResults(data) {
-  paginationState.tab6.cachedData = { data }; // Lưu dữ liệu vào cache
-  displayTransactionsGeneric({
-    data,
-    tabId: 'tab6',
-    containerId: 'searchResultsContainer',
-    pageInfoId: 'pageInfoSearch',
-    prevPageId: 'prevPageSearch',
-    nextPageId: 'nextPageSearch',
-    noDataMessage: 'Không tìm thấy giao dịch nào phù hợp'
+  const container = document.getElementById('searchResultsContainer');
+  const pageInfo = document.getElementById('pageInfoSearch');
+  const prevPageBtn = document.getElementById('prevPageSearch');
+  const nextPageBtn = document.getElementById('nextPageSearch');
+  container.innerHTML = '';
+
+  if (!data || data.error || !Array.isArray(data) || data.length === 0) {
+    container.innerHTML = '<div>Không tìm thấy giao dịch nào phù hợp</div>';
+    pageInfo.textContent = '';
+    prevPageBtn.disabled = true;
+    nextPageBtn.disabled = true;
+    return;
+  }
+
+  // Hiển thị thông báo số lượng giao dịch
+  container.innerHTML = `<div class="notification">Tìm thấy ${data.length} giao dịch phù hợp</div>`;
+
+  const totalPages = Math.ceil(data.length / searchPerPage);
+  const startIndex = (currentPageSearch - 1) * searchPerPage;
+  const endIndex = startIndex + searchPerPage;
+  const paginatedData = data.slice(startIndex, endIndex);
+
+  paginatedData.forEach((item, index) => {
+    const transactionBox = document.createElement('div');
+    transactionBox.className = 'transaction-box';
+    const amountColor = item.type === 'Thu nhập' ? '#10B981' : '#EF4444';
+    const typeClass = item.type === 'Thu nhập' ? 'income' : 'expense';
+    const transactionNumber = startIndex + index + 1;
+    transactionBox.innerHTML = `
+      <div style="display: flex; justify-content: space-between; width: 100%;">
+        <div style="flex: 1;">
+          <div class="date">${formatDate(item.date)}</div>
+          <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
+          <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
+          <div class="number">STT của giao dịch: ${transactionNumber}</div>
+          <div class="id">ID của giao dịch: ${item.id}</div>
+        </div>
+        <div style="flex: 1; text-align: right;">
+          <div class="type ${typeClass}">Phân loại: ${item.type}</div>
+          <div class="category">Phân loại chi tiết: ${item.category}</div>
+        </div>
+      </div>
+      <div style="margin-top: 0.5rem;">
+        <button class="edit-btn" data-id="${item.id}" style="background: #FFA500; color: white; padding: 0.3rem 0.8rem; border-radius: 8px;">Sửa</button>
+        <button class="delete-btn" data-id="${item.id}" style="background: #EF4444; color: white; padding: 0.3rem 0.8rem; border-radius: 8px; margin-left: 0.5rem;">Xóa</button>
+      </div>
+    `;
+    container.appendChild(transactionBox);
+  });
+
+  pageInfo.textContent = `Trang ${currentPageSearch} / ${totalPages}`;
+  prevPageBtn.disabled = currentPageSearch === 1;
+  nextPageBtn.disabled = currentPageSearch === totalPages;
+
+  document.querySelectorAll('.edit-btn').forEach(button => {
+    const transactionId = button.getAttribute('data-id');
+    const transaction = data.find(item => String(item.id) === String(transactionId));
+    if (!transaction) return console.error(`Không tìm thấy giao dịch với ID: ${transactionId}`);
+    button.addEventListener('click', () => openEditForm(transaction));
+  });
+
+  document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', () => deleteTransaction(button.getAttribute('data-id')));
   });
 }
 
@@ -289,7 +343,15 @@ window.searchTransactions = async function() {
     const searchData = await response.json();
     if (searchData.error) throw new Error(searchData.error);
 
-    paginationState.tab6.currentPage = 1; // Reset về trang đầu tiên
+    // Lưu trữ toàn bộ dữ liệu từ API
+    cachedSearchResults = {
+      transactions: searchData.transactions,
+      totalTransactions: searchData.totalTransactions,
+      totalPages: searchData.totalPages,
+      currentPage: searchData.currentPage
+    };
+    currentPageSearch = searchData.currentPage || 1;
+
     displaySearchResults(searchData.transactions);
   } catch (error) {
     showError("Lỗi khi tìm kiếm giao dịch: " + error.message, 'tab6');

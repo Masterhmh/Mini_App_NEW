@@ -974,9 +974,8 @@ window.searchTransactions = async function() {
   const content = document.getElementById('searchContent').value.trim();
   const amount = document.getElementById('searchAmount').value;
   const category = document.getElementById('searchCategory').value;
-  const year = new Date().getFullYear(); // Hiện tại chỉ lấy năm hiện tại
+  const year = new Date().getFullYear();
 
-  // Kiểm tra xem có ít nhất một tiêu chí chính được nhập không
   if (!content && !amount && !category) {
     return showError("Vui lòng nhập ít nhất một tiêu chí: nội dung, số tiền, hoặc phân loại chi tiết!", 'tab6');
   }
@@ -992,9 +991,17 @@ window.searchTransactions = async function() {
     const response = await fetch(url);
     const searchData = await response.json();
     if (searchData.error) throw new Error(searchData.error);
-    cachedSearchResults = { data: searchData };
-    currentPageSearch = 1; // Reset về trang đầu tiên
-    displaySearchResults(searchData);
+
+    // Lưu trữ toàn bộ dữ liệu từ API
+    cachedSearchResults = {
+      transactions: searchData.transactions,
+      totalTransactions: searchData.totalTransactions,
+      totalPages: searchData.totalPages,
+      currentPage: searchData.currentPage
+    };
+    currentPageSearch = searchData.currentPage || 1;
+
+    displaySearchResults(searchData.transactions);
   } catch (error) {
     showError("Lỗi khi tìm kiếm giao dịch: " + error.message, 'tab6');
     displaySearchResults({ error: true });
@@ -1018,6 +1025,9 @@ function displaySearchResults(data) {
     nextPageBtn.disabled = true;
     return;
   }
+
+  // Hiển thị thông báo số lượng giao dịch
+  container.innerHTML = `<div class="notification">Tìm thấy ${data.length} giao dịch phù hợp</div>`;
 
   const totalPages = Math.ceil(data.length / searchPerPage);
   const startIndex = (currentPageSearch - 1) * searchPerPage;
@@ -1067,7 +1077,6 @@ function displaySearchResults(data) {
     button.addEventListener('click', () => deleteTransaction(button.getAttribute('data-id')));
   });
 }
-
 // Cập nhật sự kiện khởi tạo trong DOMContentLoaded (giữ nguyên phần còn lại, chỉ thêm sự kiện mới)
 document.addEventListener('DOMContentLoaded', function() {
   const navItems = document.querySelectorAll('.nav-item');

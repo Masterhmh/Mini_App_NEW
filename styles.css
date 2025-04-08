@@ -728,3 +728,142 @@ canvas#monthlyChart {
     max-width: 450px;
   }
 }
+/* Điều chỉnh input-group cho tab Tìm kiếm */
+.input-group.vertical {
+  flex-direction: column; /* Xếp các phần tử theo chiều dọc */
+  align-items: center; /* Căn giữa các phần tử */
+  gap: 1.2rem; /* Khoảng cách giữa các trường */
+  padding: 0; /* Loại bỏ padding ngang để căn giữa */
+}
+
+/* Định kiểu cho mỗi trường nhập liệu */
+.input-group.vertical .input-field {
+  display: flex;
+  flex-direction: column; /* Label và input/select xếp dọc */
+  align-items: flex-start; /* Căn trái nội dung */
+  width: 100%; /* Chiếm toàn bộ chiều rộng */
+  max-width: 350px; /* Giới hạn chiều rộng tối đa */
+  margin: 0 auto; /* Căn giữa khối input-field */
+}
+
+/* Định kiểu cho label */
+.input-group.vertical .input-field label {
+  margin-bottom: 0.4rem; /* Khoảng cách giữa label và input/select */
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+/* Định kiểu chung cho input và select */
+.input-group.vertical .input-field .uniform-input {
+  width: 100%; /* Chiếm toàn bộ chiều rộng của input-field */
+  padding: 0.7rem 1rem; /* Tăng padding để trông giống hình */
+  font-size: 1rem;
+  border-radius: 10px; /* Bo tròn giống hình */
+  border: 1px solid #D1D5DB; /* Viền xám nhạt */
+  background-color: #FFFFFF; /* Nền trắng */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Bóng nhẹ */
+  transition: border-color 0.3s, box-shadow 0.3s;
+  box-sizing: border-box; /* Đảm bảo padding và border không làm tăng chiều rộng */
+  -webkit-appearance: none; /* Loại bỏ kiểu mặc định của select */
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Đảm bảo select có mũi tên dropdown */
+.input-group.vertical .input-field select.uniform-input {
+  background-image: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 1rem;
+}
+
+/* Hiệu ứng khi focus */
+.input-group.vertical .input-field .uniform-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1); /* Viền sáng khi focus */
+}
+
+/* Định kiểu cho nút Tìm kiếm */
+.input-group.vertical button {
+  width: 100%; /* Chiếm toàn bộ chiều rộng */
+  max-width: 350px; /* Giới hạn chiều rộng tối đa */
+  margin: 0 auto; /* Căn giữa nút */
+  padding: 0.7rem 1.5rem; /* Tăng padding để trông giống hình */
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 10px; /* Bo tròn giống hình */
+  background: linear-gradient(135deg, #16A34A, #4ADE80); /* Gradient giống các nút khác */
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.3s;
+}
+
+/* Hiệu ứng hover cho nút */
+.input-group.vertical button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Định kiểu cho nút phân trang */
+.pagination-btn {
+  min-width: 110px;
+  padding: 0.6rem 1rem;
+  background: linear-gradient(135deg, #16A34A, #4ADE80);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.3s;
+}
+
+.pagination-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Bố cục cho các khối phân trang */
+#pagination, #paginationMonthly, #paginationSearch {
+  text-align: center;
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Responsive cho màn hình nhỏ */
+@media (max-width: 600px) {
+  .input-group.vertical .input-field {
+    max-width: 300px; /* Giảm chiều rộng trên màn hình nhỏ */
+  }
+
+  .input-group.vertical .input-field .uniform-input {
+    font-size: 0.9rem;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .input-group.vertical button {
+    max-width: 300px;
+    font-size: 0.9rem;
+    padding: 0.6rem 1rem;
+  }
+
+  .pagination-btn {
+    min-width: 90px;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.85rem;
+  }
+}

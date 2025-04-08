@@ -168,40 +168,47 @@
     </div>
 
     <div id="tab6" class="tab-content">
-      <h1>TÌM KIẾM GIAO DỊCH</h1>
-      <p class="notification">Nhập ít nhất một tiêu chí (nội dung, số tiền, hoặc phân loại chi tiết) để tìm kiếm. Tháng là tùy chọn.</p>
-      <div id="errorMessageTab6" style="color: red; text-align: center; display: none; margin-bottom: 1rem;"></div>
-      <div id="successMessageTab6" style="color: green; text-align: center; display: none; margin-bottom: 1rem;"></div>
-      <div id="loadingTab6" style="display: none; text-align: center; margin: 1rem 0;">
-        <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--primary-color);"></i>
-      </div>
-      <div class="input-group">
-        <label>Tháng: </label>
-        <select id="searchMonth">
-          <option value="">Tất cả</option>
-          <option value="1">Tháng 1</option><option value="2">Tháng 2</option><option value="3">Tháng 3</option>
-          <option value="4">Tháng 4</option><option value="5">Tháng 5</option><option value="6">Tháng 6</option>
-          <option value="7">Tháng 7</option><option value="8">Tháng 8</option><option value="9">Tháng 9</option>
-          <option value="10">Tháng 10</option><option value="11">Tháng 11</option><option value="12">Tháng 12</option>
-        </select>
-        <label>Nội dung: </label>
-        <input type="text" id="searchContent" placeholder="Nhập nội dung">
-        <label>Số tiền: </label>
-        <input type="number" id="searchAmount" min="0" placeholder="Nhập số tiền">
-        <label>Phân loại chi tiết: </label>
-        <select id="searchCategory">
-          <option value="">Tất cả</option>
-        </select>
-        <button id="searchTransactionsBtn">Tìm kiếm</button>
-      </div>
-      <div class="transactions-list" id="searchResultsContainer"></div>
-      <div id="paginationSearch" style="text-align: center; margin-top: 1rem;">
-        <button id="prevPageSearch" class="pagination-btn" disabled>Trang trước</button>
-        <span id="pageInfoSearch"></span>
-        <button id="nextPageSearch" class="pagination-btn">Trang sau</button>
-      </div>
-    </div>
+  <h1>TÌM KIẾM GIAO DỊCH</h1>
+  <p class="notification">Nhập ít nhất một tiêu chí (nội dung, số tiền, hoặc phân loại chi tiết) để tìm kiếm. Tháng là tùy chọn.</p>
+  <div id="errorMessageTab6" style="color: red; text-align: center; display: none; margin-bottom: 1rem;"></div>
+  <div id="successMessageTab6" style="color: green; text-align: center; display: none; margin-bottom: 1rem;"></div>
+  <div id="loadingTab6" style="display: none; text-align: center; margin: 1rem 0;">
+    <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--primary-color);"></i>
   </div>
+  <div class="input-group vertical">
+    <div class="input-field">
+      <label>Tháng: </label>
+      <select id="searchMonth" class="uniform-input">
+        <option value="">Tất cả</option>
+        <option value="1">Tháng 1</option><option value="2">Tháng 2</option><option value="3">Tháng 3</option>
+        <option value="4">Tháng 4</option><option value="5">Tháng 5</option><option value="6">Tháng 6</option>
+        <option value="7">Tháng 7</option><option value="8">Tháng 8</option><option value="9">Tháng 9</option>
+        <option value="10">Tháng 10</option><option value="11">Tháng 11</option><option value="12">Tháng 12</option>
+      </select>
+    </div>
+    <div class="input-field">
+      <label>Nội dung: </label>
+      <input type="text" id="searchContent" class="uniform-input" placeholder="Nhập nội dung">
+    </div>
+    <div class="input-field">
+      <label>Số tiền: </label>
+      <input type="number" id="searchAmount" class="uniform-input" min="0" placeholder="Nhập số tiền">
+    </div>
+    <div class="input-field">
+      <label>Phân loại chi tiết: </label>
+      <select id="searchCategory" class="uniform-input">
+        <option value="">Tất cả</option>
+      </select>
+    </div>
+    <button id="searchTransactionsBtn">Tìm kiếm</button>
+  </div>
+  <div class="transactions-list" id="searchResultsContainer"></div>
+  <div id="paginationSearch">
+    <button id="prevPageSearch" class="pagination-btn" disabled>Trang trước</button>
+    <span id="pageInfoSearch"></span>
+    <button id="nextPageSearch" class="pagination-btn">Trang sau</button>
+  </div>
+</div>
 
   <div id="editModal" class="modal">
     <div class="modal-content">

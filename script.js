@@ -950,3 +950,190 @@ document.addEventListener('DOMContentLoaded', function() {
 
   window.openTab('tab1');
 });
+// Biến toàn cục cho tab tìm kiếm
+let cachedSearchResults = null;
+let currentPageSearch = 1;
+const searchPerPage = 10;
+
+// Hàm lấy danh sách phân loại chi tiết để điền vào select
+async function populateSearchCategories() {
+  const categorySelect = document.getElementById('searchCategory');
+  const categories = await fetchCategories();
+  categorySelect.innerHTML = '<option value="">Tất cả</option>';
+  categories.forEach(category => {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category;
+    categorySelect.appendChild(option);
+  });
+}
+
+// Hàm tìm kiếm giao dịch
+window.searchTransactions = async function() {
+  const month = document.getElementById('searchMonth').value;
+  const content = document.getElementById('searchContent').value.trim();
+  const amount = document.getElementById('searchAmount').value;
+  const category = document.getElementById('searchCategory').value;
+  const year = new Date().getFullYear(); // Hiện tại chỉ lấy năm hiện tại
+
+  // Kiểm tra xem có ít nhất một tiêu chí chính được nhập không
+  if (!content && !amount && !category) {
+    return showError("Vui lòng nhập ít nhất một tiêu chí: nội dung, số tiền, hoặc phân loại chi tiết!", 'tab6');
+  }
+
+  showLoading(true, 'tab6');
+  try {
+    let url = `${apiUrl}?action=searchTransactions&sheetId=${sheetId}`;
+    if (month) url += `&month=${month}&year=${year}`;
+    if (content) url += `&content=${encodeURIComponent(content)}`;
+    if (amount) url += `&amount=${encodeURIComponent(amount)}`;
+    if (category) url += `&category=${encodeURIComponent(category)}`;
+
+    const response = await fetch(url);
+    const searchData = await response.json();
+    if (searchData.error) throw new Error(searchData.error);
+    cachedSearchResults = { data: searchData };
+    currentPageSearch = 1; // Reset về trang đầu tiên
+    displaySearchResults(searchData);
+  } catch (error) {
+    showError("Lỗi khi tìm kiếm giao dịch: " + error.message, 'tab6');
+    displaySearchResults({ error: true });
+  } finally {
+    showLoading(false, 'tab6');
+  }
+};
+
+// Hàm hiển thị kết quả tìm kiếm (giữ nguyên từ trước)
+function displaySearchResults(data) {
+  const container = document.getElementById('searchResultsContainer');
+  const pageInfo = document.getElementById('pageInfoSearch');
+  const prevPageBtn = document.getElementById('prevPageSearch');
+  const nextPageBtn = document.getElementById('nextPageSearch');
+  container.innerHTML = '';
+
+  if (!data || data.error || !Array.isArray(data) || data.length === 0) {
+    container.innerHTML = '<div>Không tìm thấy giao dịch nào phù hợp</div>';
+    pageInfo.textContent = '';
+    prevPageBtn.disabled = true;
+    nextPageBtn.disabled = true;
+    return;
+  }
+
+  const totalPages = Math.ceil(data.length / searchPerPage);
+  const startIndex = (currentPageSearch - 1) * searchPerPage;
+  const endIndex = startIndex + searchPerPage;
+  const paginatedData = data.slice(startIndex, endIndex);
+
+  paginatedData.forEach((item, index) => {
+    const transactionBox = document.createElement('div');
+    transactionBox.className = 'transaction-box';
+    const amountColor = item.type === 'Thu nhập' ? '#10B981' : '#EF4444';
+    const typeClass = item.type === 'Thu nhập' ? 'income' : 'expense';
+    const transactionNumber = startIndex + index + 1;
+    transactionBox.innerHTML = `
+      <div style="display: flex; justify-content: space-between; width: 100%;">
+        <div style="flex: 1;">
+          <div class="date">${formatDate(item.date)}</div>
+          <div class="amount" style="color: ${amountColor}">${item.amount.toLocaleString('vi-VN')}đ</div>
+          <div class="content">Nội dung: ${item.content}${item.note ? ` (${item.note})` : ''}</div>
+          <div class="number">STT của giao dịch: ${transactionNumber}</div>
+          <div class="id">ID của giao dịch: ${item.id}</div>
+        </div>
+        <div style="flex: 1; text-align: right;">
+          <div class="type ${typeClass}">Phân loại: ${item.type}</div>
+          <div class="category">Phân loại chi tiết: ${item.category}</div>
+        </div>
+      </div>
+      <div style="margin-top: 0.5rem;">
+        <button class="edit-btn" data-id="${item.id}" style="background: #FFA500; color: white; padding: 0.3rem 0.8rem; border-radius: 8px;">Sửa</button>
+        <button class="delete-btn" data-id="${item.id}" style="background: #EF4444; color: white; padding: 0.3rem 0.8rem; border-radius: 8px; margin-left: 0.5rem;">Xóa</button>
+      </div>
+    `;
+    container.appendChild(transactionBox);
+  });
+
+  pageInfo.textContent = `Trang ${currentPageSearch} / ${totalPages}`;
+  prevPageBtn.disabled = currentPageSearch === 1;
+  nextPageBtn.disabled = currentPageSearch === totalPages;
+
+  document.querySelectorAll('.edit-btn').forEach(button => {
+    const transactionId = button.getAttribute('data-id');
+    const transaction = data.find(item => String(item.id) === String(transactionId));
+    if (!transaction) return console.error(`Không tìm thấy giao dịch với ID: ${transactionId}`);
+    button.addEventListener('click', () => openEditForm(transaction));
+  });
+
+  document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', () => deleteTransaction(button.getAttribute('data-id')));
+  });
+}
+
+// Cập nhật sự kiện khởi tạo trong DOMContentLoaded (giữ nguyên phần còn lại, chỉ thêm sự kiện mới)
+document.addEventListener('DOMContentLoaded', function() {
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(item => {
+    item.addEventListener('click', () => window.openTab(item.getAttribute('data-tab')));
+  });
+
+  document.getElementById('fetchDataBtn').addEventListener('click', window.fetchData);
+  document.getElementById('fetchMonthlyDataBtn').addEventListener('click', window.fetchMonthlyData);
+  document.getElementById('fetchTransactionsBtn').addEventListener('click', window.fetchTransactions);
+  document.getElementById('addTransactionBtn').addEventListener('click', openAddForm);
+  document.getElementById('fetchMonthlyExpensesBtn').addEventListener('click', window.fetchMonthlyExpenses);
+  document.getElementById('searchTransactionsBtn').addEventListener('click', window.searchTransactions);
+
+  document.getElementById('prevPage').addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      window.fetchTransactions();
+    }
+  });
+  document.getElementById('nextPage').addEventListener('click', () => {
+    const totalPages = Math.ceil((cachedTransactions?.data.length || 0) / transactionsPerPage);
+    if (currentPage < totalPages) {
+      currentPage++;
+      window.fetchTransactions();
+    }
+  });
+
+  document.getElementById('prevPageMonthly').addEventListener('click', () => {
+    if (currentPageMonthly > 1) {
+      currentPageMonthly--;
+      window.fetchMonthlyExpenses();
+    }
+  });
+  document.getElementById('nextPageMonthly').addEventListener('click', () => {
+    const totalPages = Math.ceil((cachedMonthlyExpenses?.data.length || 0) / expensesPerPage);
+    if (currentPageMonthly < totalPages) {
+      currentPageMonthly++;
+      window.fetchMonthlyExpenses();
+    }
+  });
+
+  document.getElementById('prevPageSearch').addEventListener('click', () => {
+    if (currentPageSearch > 1) {
+      currentPageSearch--;
+      displaySearchResults(cachedSearchResults.data);
+    }
+  });
+  document.getElementById('nextPageSearch').addEventListener('click', () => {
+    const totalPages = Math.ceil((cachedSearchResults?.data.length || 0) / searchPerPage);
+    if (currentPageSearch < totalPages) {
+      currentPageSearch++;
+      displaySearchResults(cachedSearchResults.data);
+    }
+  });
+
+  const today = new Date();
+  const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  document.getElementById('startDate').value = formatDateToYYYYMMDD(startDate);
+  document.getElementById('endDate').value = formatDateToYYYYMMDD(today);
+  document.getElementById('startMonth').value = 1;
+  document.getElementById('endMonth').value = 12;
+  document.getElementById('transactionDate').value = formatDateToYYYYMMDD(today);
+  document.getElementById('expenseMonth').value = today.getMonth() + 1;
+  document.getElementById('searchMonth').value = ''; // Mặc định là "Tất cả"
+
+  populateSearchCategories(); // Điền danh sách phân loại chi tiết
+  window.openTab('tab1');
+});

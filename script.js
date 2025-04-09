@@ -344,379 +344,7 @@ async function deleteTransaction(transactionId) {
   }
 }
 
-// Tab 2: Thống kê
-window.fetchData = async function() {
-  const startDateInput = document.getElementById('startDate').value;
-  const endDateInput = document.getElementById('endDate').value;
-  if (!startDateInput || !endDateInput) {
-    showToast("Vui lòng chọn khoảng thời gian!", "warning");
-    return;
-  }
-  const startDate = new Date(startDateInput);
-  const endDate = new Date(endDateInput);
-  if (startDate > endDate) {
-    showToast("Ngày bắt đầu không thể lớn hơn ngày kết thúc!", "warning");
-    return;
-  }
-
-  showLoading(true, 'tab2');
-  try {
-    const financialResponse = await fetch(`${apiUrl}?action=getFinancialSummary&startDate=${startDateInput}&endDate=${endDateInput}&sheetId=${sheetId}`);
-    if (!financialResponse.ok) throw new Error(`HTTP error! Status: ${financialResponse.status}`);
-    const financialData = await financialResponse.json();
-    if (financialData.error) throw new Error(financialData.error);
-    updateFinancialData(financialData);
-
-    const chartResponse = await fetch(`${apiUrl}?action=getChartData&startDate=${startDateInput}&endDate=${endDateInput}&sheetId=${sheetId}`);
-    if (!chartResponse.ok) throw new Error(`HTTP error! Status: ${chartResponse.status}`);
-    const chartData = await chartResponse.json();
-    if (chartData.error) throw new Error(chartData.error);
-    updateChartData(chartData);
-  } catch (error) {
-    showToast("Lỗi khi lấy dữ liệu: " + error.message, "error");
-    updateFinancialData({ error: true });
-  } finally {
-    showLoading(false, 'tab2');
-  }
-};
-
-function updateFinancialData(data) {
-  const container = document.getElementById('statsContainer');
-  if (!data || data.error) {
-    container.innerHTML = `
-      <div class="stat-box income">
-        <div class="title">Tổng thu nhập</div>
-        <div class="amount no-data">Không có<br>dữ liệu</div>
-      </div>
-      <div class="stat-box expense">
-        <div class="title">Tổng chi tiêu</div>
-        <div class="amount no-data">Không có<br>dữ liệu</div>
-      </div>
-      <div class="stat-box balance">
-        <div class="title">Số dư</div>
-        <div class="amount no-data">Không có<br>dữ liệu</div>
-      </div>
-    `;
-    return;
-  }
-
-  const totalIncome = Number(data.income) || 0;
-  const totalExpense = Number(data.expense) || 0;
-  if (totalIncome === 0 && totalExpense === 0) {
-    container.innerHTML = `
-      <div class="stat-box income">
-        <div class="title">Tổng thu nhập</div>
-        <div class="amount no-data">Không có<br>dữ liệu</div>
-      </div>
-      <div class="stat-box expense">
-        <div class="title">Tổng chi tiêu</div>
-        <div class="amount no-data">Không có<br>dữ liệu</div>
-      </div>
-      <div class="stat-box balance">
-        <div class="title">Số dư</div>
-        <div class="amount no-data">Không có<br>dữ liệu</div>
-      </div>
-    `;
-    return;
-  }
-
-  const balance = totalIncome - totalExpense;
-  container.innerHTML = `
-    <div class="stat-box income">
-      <div class="title">Tổng thu nhập</div>
-      <div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div>
-    </div>
-    <div class="stat-box expense">
-      <div class="title">Tổng chi tiêu</div>
-      <div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div>
-    </div>
-    <div class="stat-box balance">
-      <div class="title">Số dư</div>
-      <div class="amount">${balance.toLocaleString('vi-VN')}đ</div>
-    </div>
-  `;
-}
-
-function updateChartData(response) {
-  const ctx = document.getElementById('myChart').getContext('2d');
-  if (window.myChart && typeof window.myChart.destroy === 'function') {
-    window.myChart.destroy();
-  }
-
-  if (response.error) {
-    showToast(response.error, "error");
-    return;
-  }
-
-  const chartData = response.chartData;
-  const categories = response.categories;
-  const totalAmount = chartData.reduce((sum, item) => sum + item.amount, 0);
-  const backgroundColors = [
-    '#FF6B6B', '#FF9F45', '#FFE156', '#7DC95E', '#40C4FF',
-    '#5A92FF', '#9B5DE5', '#FF66C4', '#FF7D7D', '#F88F70',
-    '#54A0FF', '#C084FC', '#FF82A9', '#6DCFF6', '#FFACC5',
-    '#E4C1F9', '#FF928B', '#FDCB98', '#B5E2FA', '#91E8BC',
-    '#FFD166', '#FF8E72', '#E57373', '#74D3AE', '#43BCCD',
-    '#D1B3E0', '#F78F8F', '#F6B17A', '#F4A261', '#FF6392',
-    '#66D9E8', '#FF85A1', '#6A0572', '#FC7A57', '#A29BFE'
-  ];
-
-  const customLegend = document.getElementById('customLegend');
-  customLegend.innerHTML = '';
-  const leftColumn = document.createElement('div');
-  leftColumn.className = 'custom-legend-column';
-  const rightColumn = document.createElement('div');
-  rightColumn.className = 'custom-legend-column';
-
-  chartData.forEach((item, i) => {
-    const index = categories.indexOf(item.category);
-    const color = backgroundColors[index % backgroundColors.length];
-    const percentage = ((item.amount / totalAmount) * 100).toFixed(1);
-    const legendItem = document.createElement('div');
-    legendItem.className = 'legend-item';
-    legendItem.innerHTML = `
-      <span class="legend-color" style="background-color: ${color};"></span>
-      <span class="legend-text">
-        ${item.category}:
-        <span class="legend-value">${item.amount.toLocaleString('vi-VN')}đ (${percentage}%)</span>
-      </span>
-    `;
-    if (i % 2 === 0) leftColumn.appendChild(legendItem);
-    else rightColumn.appendChild(legendItem);
-  });
-
-  customLegend.appendChild(leftColumn);
-  customLegend.appendChild(rightColumn);
-
-  window.myChart = new Chart(ctx, {
-    type: 'pie',
-    data: {
-      labels: chartData.map(item => item.category),
-      datasets: [{
-        data: chartData.map(item => item.amount),
-        backgroundColor: chartData.map(item => {
-          const index = categories.indexOf(item.category);
-          return backgroundColors[index % backgroundColors.length];
-        })
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      aspectRatio: 1,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          mode: 'index',
-          intersect: false,
-          callbacks: {
-            label: function(tooltipItem) {
-              const category = tooltipItem.label;
-              const amount = tooltipItem.raw;
-              const percentage = ((amount / totalAmount) * 100).toFixed(1);
-              return `${category}: ${amount.toLocaleString('vi-VN')}đ (${percentage}%)`;
-            }
-          },
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          titleFont: { size: 12 },
-          bodyFont: { size: 10 },
-          titleColor: '#fff',
-          bodyColor: '#fff',
-          padding: 8,
-          displayColors: true,
-        },
-        datalabels: {
-          formatter: (value, context) => {
-            const percentage = ((value / totalAmount) * 100).toFixed(1);
-            return percentage >= 1 ? `${value.toLocaleString('vi-VN')}đ (${percentage}%)` : '';
-          },
-          color: '#fff',
-          font: { weight: 'bold', size: 12 },
-          anchor: 'end',
-          align: 'end',
-          clamp: true
-        }
-      }
-    }
-  });
-}
-
-// Tab 3: Biểu đồ
-window.fetchMonthlyData = async function() {
-  const startMonth = parseInt(document.getElementById('startMonth').value);
-  const endMonth = parseInt(document.getElementById('endMonth').value);
-  const year = new Date().getFullYear();
-  if (startMonth > endMonth) {
-    showToast("Tháng bắt đầu không thể lớn hơn tháng kết thúc!", "warning");
-    return;
-  }
-
-  showLoading(true, 'tab3');
-  try {
-    const response = await fetch(`${apiUrl}?action=getMonthlyData&year=${year}&sheetId=${sheetId}`);
-    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-    const monthlyData = await response.json();
-    if (monthlyData.error) throw new Error(monthlyData.error);
-
-    const fullYearData = Array.from({ length: 12 }, (_, i) => {
-      const month = i + 1;
-      const existingData = monthlyData.find(item => item.month === month);
-      return existingData || { month, income: 0, expense: 0 };
-    });
-
-    const filteredData = Array.from({ length: endMonth - startMonth + 1 }, (_, i) => {
-      const month = startMonth + i;
-      const existingData = fullYearData.find(item => item.month === month);
-      return existingData || { month, income: 0, expense: 0 };
-    });
-
-    updateMonthlyChart(filteredData);
-  } catch (error) {
-    showToast("Lỗi khi lấy dữ liệu biểu đồ tháng: " + error.message, "error");
-    const filteredData = Array.from({ length: endMonth - startMonth + 1 }, (_, i) => ({
-      month: startMonth + i,
-      income: 0,
-      expense: 0
-    }));
-    updateMonthlyChart(filteredData);
-  } finally {
-    showLoading(false, 'tab3');
-  }
-};
-
-function updateMonthlyChart(filteredData) {
-  const ctx = document.getElementById('monthlyChart').getContext('2d');
-  if (window.monthlyChart && typeof window.monthlyChart.destroy === 'function') {
-    window.monthlyChart.destroy();
-  }
-
-  if (!filteredData || filteredData.length === 0) {
-    window.monthlyChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Không có dữ liệu'],
-        datasets: [
-          { label: 'Thu nhập', data: [0], backgroundColor: '#10B981' },
-          { label: 'Chi tiêu', data: [0], backgroundColor: '#EF4444' }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        aspectRatio: 1,
-        scales: {
-          y: { 
-            beginAtZero: true, 
-            title: { display: true, text: 'Số tiền (đ)', font: { size: 14 } }, 
-            ticks: { font: { size: 12 } } 
-          },
-          x: { 
-            title: { display: true, text: 'Tháng', font: { size: 14 } }, 
-            ticks: { font: { size: 12 } } 
-          }
-        },
-        plugins: {
-          legend: { display: true, labels: { font: { size: 12 } } },
-          tooltip: {
-            titleFont: { size: 12 },
-            bodyFont: { size: 12 },
-            callbacks: {
-              label: function(tooltipItem) {
-                return `${tooltipItem.dataset.label}: ${tooltipItem.raw.toLocaleString('vi-VN')}đ`;
-              }
-            }
-          },
-          datalabels: { display: false }
-        }
-      }
-    });
-    document.getElementById('monthlyLegend').innerHTML = '<div>Không có dữ liệu</div>';
-    return;
-  }
-
-  const labels = filteredData.map(item => `Tháng ${item.month}`);
-  const incomes = filteredData.map(item => item.income || 0);
-  const expenses = filteredData.map(item => item.expense || 0);
-
-  window.monthlyChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [
-        { label: 'Thu nhập', data: incomes, backgroundColor: '#10B981', borderColor: '#10B981', borderWidth: 1 },
-        { label: 'Chi tiêu', data: expenses, backgroundColor: '#EF4444', borderColor: '#EF4444', borderWidth: 1 }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      aspectRatio: 1,
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: 'Số tiền (đ)', font: { size: 14 } },
-          ticks: {
-            callback: function(value) { return value.toLocaleString('vi-VN') + 'đ'; },
-            font: { size: 12 }
-          }
-        },
-        x: {
-          title: { display: true, text: 'Tháng', font: { size: 14 } },
-          ticks: {
-            font: { size: 10 },
-            maxRotation: 45,
-            minRotation: 45,
-            autoSkip: false
-          }
-        }
-      },
-      plugins: {
-        legend: { display: true, labels: { font: { size: 12 } } },
-        tooltip: {
-          titleFont: { size: 12 },
-          bodyFont: { size: 12 },
-          callbacks: {
-            label: function(tooltipItem) {
-              return `${tooltipItem.dataset.label}: ${tooltipItem.raw.toLocaleString('vi-VN')}đ`;
-            }
-          }
-        },
-        datalabels: {
-          display: true,
-          align: 'end',
-          anchor: 'end',
-          formatter: (value) => value.toLocaleString('vi-VN') + 'đ',
-          color: '#1F2A44',
-          font: { weight: 'bold', size: 12 }
-        }
-      }
-    }
-  });
-
-  const monthlyLegend = document.getElementById('monthlyLegend');
-  monthlyLegend.innerHTML = '';
-  const column = document.createElement('div');
-  column.className = 'monthly-column';
-
-  filteredData.forEach(item => {
-    const difference = (item.income || 0) - (item.expense || 0);
-    const diffClass = difference >= 0 ? 'positive' : 'negative';
-    const diffIcon = difference >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
-    const monthItem = document.createElement('div');
-    monthItem.className = 'month-item';
-    monthItem.innerHTML = `
-      <h3>Tháng ${item.month}:</h3>
-      <p><span class="color-box" style="background-color: #10B981;"></span>Tổng thu nhập: <strong>${(item.income || 0).toLocaleString('vi-VN')}đ</strong></p>
-      <p><span class="color-box" style="background-color: #EF4444;"></span>Tổng chi tiêu: <strong>${(item.expense || 0).toLocaleString('vi-VN')}đ</strong></p>
-      <p><i class="fas ${diffIcon} difference-icon ${diffClass}"></i>Chênh lệch: <span class="difference ${diffClass}"><strong>${difference.toLocaleString('vi-VN')}đ</strong></span></p>
-    `;
-    column.appendChild(monthItem);
-  });
-
-  monthlyLegend.appendChild(column);
-}
-
-// Tab 5: Chi tiêu trong tháng
+// Tab 2: Liệt kê
 window.fetchMonthlyExpenses = async function() {
   const month = document.getElementById('expenseMonth').value;
   if (!month) return showToast("Vui lòng chọn tháng để xem giao dịch!", "warning");
@@ -728,7 +356,7 @@ window.fetchMonthlyExpenses = async function() {
     return;
   }
 
-  showLoading(true, 'tab5');
+  showLoading(true, 'tab2');
   try {
     const response = await fetch(`${apiUrl}?action=getTransactionsByMonth&month=${month}&year=${year}&sheetId=${sheetId}`);
     const transactionData = await response.json();
@@ -739,7 +367,7 @@ window.fetchMonthlyExpenses = async function() {
     showToast("Lỗi khi lấy dữ liệu giao dịch: " + error.message, "error");
     displayMonthlyExpenses({ error: true });
   } finally {
-    showLoading(false, 'tab5');
+    showLoading(false, 'tab2');
   }
 };
 
@@ -829,19 +457,286 @@ function displayMonthlyExpenses(data) {
   });
 }
 
-// Tab 6: Tìm kiếm giao dịch
-async function populateSearchCategories() {
-  const categorySelect = document.getElementById('searchCategory');
-  const categories = await fetchCategories();
-  categorySelect.innerHTML = '<option value="">Tất cả</option>';
-  categories.forEach(category => {
-    const option = document.createElement('option');
-    option.value = category;
-    option.textContent = category;
-    categorySelect.appendChild(option);
-  });
+// Tab 3: Thống kê
+window.fetchData = async function() {
+  const startDateInput = document.getElementById('startDate').value;
+  const endDateInput = document.getElementById('endDate').value;
+  if (!startDateInput || !endDateInput) {
+    showToast("Vui lòng chọn khoảng thời gian!", "warning");
+    return;
+  }
+  const startDate = new Date(startDateInput);
+  const endDate = new Date(endDateInput);
+  if (startDate > endDate) {
+    showToast("Ngày bắt đầu không thể lớn hơn ngày kết thúc!", "warning");
+    return;
+  }
+
+  showLoading(true, 'tab3');
+  try {
+    const financialResponse = await fetch(`${apiUrl}?action=getFinancialSummary&startDate=${startDateInput}&endDate=${endDateInput}&sheetId=${sheetId}`);
+    if (!financialResponse.ok) throw new Error(`HTTP error! Status: ${financialResponse.status}`);
+    const financialData = await financialResponse.json();
+    if (financialData.error) throw new Error(financialData.error);
+    updateFinancialData(financialData);
+
+    const chartResponse = await fetch(`${apiUrl}?action=getChartData&startDate=${startDateInput}&endDate=${endDateInput}&sheetId=${sheetId}`);
+    if (!chartResponse.ok) throw new Error(`HTTP error! Status: ${chartResponse.status}`);
+    const chartData = await chartResponse.json();
+    if (chartData.error) throw new Error(chartData.error);
+    updateChartData(chartData);
+  } catch (error) {
+    showToast("Lỗi khi lấy dữ liệu: " + error.message, "error");
+    updateFinancialData({ error: true });
+  } finally {
+    showLoading(false, 'tab3');
+  }
+};
+
+function updateFinancialData(data) {
+  const container = document.getElementById('statsContainer');
+  if (!data || data.error) {
+    container.innerHTML = `
+      <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+      <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+      <div class="stat-box balance"><div class="title">Số dư</div><div class="amount no-data">Không có<br>dữ liệu</div></div>
+    `;
+    return;
+  }
+
+  const totalIncome = data.totalIncome || 0;
+  const totalExpense = data.totalExpense || 0;
+  const balance = totalIncome - totalExpense;
+
+  container.innerHTML = `
+    <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">${totalIncome.toLocaleString('vi-VN')}đ</div></div>
+    <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">${totalExpense.toLocaleString('vi-VN')}đ</div></div>
+    <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">${balance.toLocaleString('vi-VN')}đ</div></div>
+  `;
 }
 
+function updateChartData(data) {
+  const ctx = document.getElementById('myChart').getContext('2d');
+  const customLegend = document.getElementById('customLegend');
+
+  if (!data || data.error || !data.categories || Object.keys(data.categories).length === 0) {
+    if (window.myChart) window.myChart.destroy();
+    ctx.canvas.style.display = 'none';
+    customLegend.innerHTML = '<div>Không có dữ liệu chi tiêu để hiển thị</div>';
+    return;
+  }
+
+  ctx.canvas.style.display = 'block';
+  const categories = data.categories;
+  const labels = Object.keys(categories);
+  const amounts = Object.values(categories);
+  const totalExpense = amounts.reduce((sum, amount) => sum + amount, 0);
+
+  const chartData = {
+    labels: labels,
+    datasets: [{
+      data: amounts,
+      backgroundColor: [
+        '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6',
+        '#EC4899', '#6B7280', '#F97316', '#14B8A6', '#D946EF'
+      ],
+    }]
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const value = context.raw;
+            const percentage = ((value / totalExpense) * 100).toFixed(1);
+            return `${context.label}: ${value.toLocaleString('vi-VN')}đ (${percentage}%)`;
+          }
+        }
+      },
+      datalabels: {
+        color: '#FFFFFF',
+        font: { weight: 'bold', size: 12 },
+        formatter: (value, context) => {
+          const percentage = ((value / totalExpense) * 100).toFixed(1);
+          return value > 0 ? `${percentage}%` : '';
+        },
+        anchor: 'center',
+        align: 'center'
+      }
+    }
+  };
+
+  if (window.myChart) window.myChart.destroy();
+  window.myChart = new Chart(ctx, {
+    type: 'pie',
+    data: chartData,
+    options: options,
+    plugins: [ChartDataLabels]
+  });
+
+  customLegend.innerHTML = '';
+  const columnCount = Math.ceil(labels.length / 2);
+  const leftColumn = document.createElement('div');
+  leftColumn.className = 'custom-legend-column';
+  const rightColumn = document.createElement('div');
+  rightColumn.className = 'custom-legend-column';
+
+  labels.forEach((label, index) => {
+    const value = amounts[index];
+    const percentage = ((value / totalExpense) * 100).toFixed(1);
+    const legendItem = document.createElement('div');
+    legendItem.className = 'legend-item';
+    legendItem.innerHTML = `
+      <div class="legend-color" style="background-color: ${chartData.datasets[0].backgroundColor[index]};"></div>
+      <div class="legend-text">${label}<span class="legend-value">${value.toLocaleString('vi-VN')}đ (${percentage}%)</span></div>
+    `;
+    if (index < columnCount) leftColumn.appendChild(legendItem);
+    else rightColumn.appendChild(legendItem);
+  });
+
+  customLegend.appendChild(leftColumn);
+  customLegend.appendChild(rightColumn);
+}
+
+// Tab 4: Biểu đồ
+window.fetchMonthlyData = async function() {
+  const startMonth = parseInt(document.getElementById('startMonth').value);
+  const endMonth = parseInt(document.getElementById('endMonth').value);
+  const year = new Date().getFullYear();
+  if (startMonth > endMonth) {
+    showToast("Tháng bắt đầu không thể lớn hơn tháng kết thúc!", "warning");
+    return;
+  }
+
+  showLoading(true, 'tab4');
+  try {
+    const response = await fetch(`${apiUrl}?action=getMonthlyData&year=${year}&sheetId=${sheetId}`);
+    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+    const monthlyData = await response.json();
+    if (monthlyData.error) throw new Error(monthlyData.error);
+
+    const fullYearData = Array.from({ length: 12 }, (_, i) => {
+      const month = i + 1;
+      const existingData = monthlyData.find(item => item.month === month);
+      return existingData || { month, income: 0, expense: 0 };
+    });
+
+    const filteredData = Array.from({ length: endMonth - startMonth + 1 }, (_, i) => {
+      const month = startMonth + i;
+      const existingData = fullYearData.find(item => item.month === month);
+      return existingData || { month, income: 0, expense: 0 };
+    });
+
+    updateMonthlyChart(filteredData);
+  } catch (error) {
+    showToast("Lỗi khi lấy dữ liệu biểu đồ tháng: " + error.message, "error");
+    const filteredData = Array.from({ length: endMonth - startMonth + 1 }, (_, i) => ({
+      month: startMonth + i,
+      income: 0,
+      expense: 0
+    }));
+    updateMonthlyChart(filteredData);
+  } finally {
+    showLoading(false, 'tab4');
+  }
+};
+
+function updateMonthlyChart(data) {
+  const ctx = document.getElementById('monthlyChart').getContext('2d');
+  const monthlyLegend = document.getElementById('monthlyLegend');
+
+  const labels = data.map(item => `Tháng ${item.month}`);
+  const incomes = data.map(item => item.income);
+  const expenses = data.map(item => item.expense);
+
+  const chartData = {
+    labels: labels,
+    datasets: [
+      {
+        label: 'Thu nhập',
+        data: incomes,
+        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+        borderColor: 'rgba(16, 185, 129, 1)',
+        borderWidth: 1,
+        barThickness: 20,
+      },
+      {
+        label: 'Chi tiêu',
+        data: expenses,
+        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+        borderColor: 'rgba(239, 68, 68, 1)',
+        borderWidth: 1,
+        barThickness: 20,
+      }
+    ]
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(value) {
+            return value.toLocaleString('vi-VN') + 'đ';
+          }
+        }
+      },
+      x: { stacked: false }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            return `${context.dataset.label}: ${context.raw.toLocaleString('vi-VN')}đ`;
+          }
+        }
+      },
+      datalabels: {
+        anchor: 'end',
+        align: 'top',
+        color: '#000',
+        font: { weight: 'bold', size: 12 },
+        formatter: (value) => value > 0 ? value.toLocaleString('vi-VN') : ''
+      }
+    }
+  };
+
+  if (window.monthlyChart) window.monthlyChart.destroy();
+  window.monthlyChart = new Chart(ctx, {
+    type: 'bar',
+    data: chartData,
+    options: options,
+    plugins: [ChartDataLabels]
+  });
+
+  monthlyLegend.innerHTML = '';
+  const monthlyColumn = document.createElement('div');
+  monthlyColumn.className = 'monthly-column';
+
+  data.forEach(item => {
+    const difference = item.income - item.expense;
+    const monthItem = document.createElement('div');
+    monthItem.className = 'month-item';
+    monthItem.innerHTML = `
+      <h3>Tháng ${item.month}</h3>
+      <p><span class="color-box" style="background-color: rgba(16, 185, 129, 0.8);"></span>Thu nhập: <span class="amount">${item.income.toLocaleString('vi-VN')}đ</span></p>
+      <p><span class="color-box" style="background-color: rgba(239, 68, 68, 0.8);"></span>Chi tiêu: <span class="amount">${item.expense.toLocaleString('vi-VN')}đ</span></p>
+      <p>Số dư: <span class="difference ${difference >= 0 ? 'positive' : 'negative'}">${difference >= 0 ? '+' : ''}${difference.toLocaleString('vi-VN')}đ</span></p>
+    `;
+    monthlyColumn.appendChild(monthItem);
+  });
+
+  monthlyLegend.appendChild(monthlyColumn);
+}
+
+// Tab 5: Tìm kiếm
 window.searchTransactions = async function() {
   const month = document.getElementById('searchMonth').value;
   const content = document.getElementById('searchContent').value.trim();
@@ -853,7 +748,7 @@ window.searchTransactions = async function() {
     return showToast("Vui lòng nhập ít nhất một tiêu chí: nội dung, số tiền, hoặc phân loại chi tiết!", "warning");
   }
 
-  showLoading(true, 'tab6');
+  showLoading(true, 'tab5');
   try {
     let url = `${apiUrl}?action=searchTransactions&sheetId=${sheetId}`;
     if (month) url += `&month=${month}&year=${year}`;
@@ -865,20 +760,14 @@ window.searchTransactions = async function() {
     const searchData = await response.json();
     if (searchData.error) throw new Error(searchData.error);
 
-    cachedSearchResults = {
-      transactions: searchData.transactions,
-      totalTransactions: searchData.totalTransactions,
-      totalPages: searchData.totalPages,
-      currentPage: searchData.currentPage
-    };
-    currentPageSearch = searchData.currentPage || 1;
-
-    displaySearchResults(searchData.transactions);
+    cachedSearchResults = searchData;
+    currentPageSearch = 1;
+    displaySearchResults(searchData);
   } catch (error) {
     showToast("Lỗi khi tìm kiếm giao dịch: " + error.message, "error");
     displaySearchResults({ error: true });
   } finally {
-    showLoading(false, 'tab6');
+    showLoading(false, 'tab5');
   }
 };
 
@@ -896,8 +785,6 @@ function displaySearchResults(data) {
     nextPageBtn.disabled = true;
     return;
   }
-
-  container.innerHTML = `<div class="notification">Tìm thấy ${data.length} giao dịch phù hợp</div>`;
 
   const totalPages = Math.ceil(data.length / searchPerPage);
   const startIndex = (currentPageSearch - 1) * searchPerPage;
@@ -948,6 +835,18 @@ function displaySearchResults(data) {
   });
 }
 
+async function populateSearchCategories() {
+  const categories = await fetchCategories();
+  const searchCategorySelect = document.getElementById('searchCategory');
+  searchCategorySelect.innerHTML = '<option value="">Tất cả</option>';
+  categories.forEach(category => {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category;
+    searchCategorySelect.appendChild(option);
+  });
+}
+
 // Khởi tạo
 document.addEventListener('DOMContentLoaded', function() {
   const navItems = document.querySelectorAll('.nav-item');
@@ -955,76 +854,74 @@ document.addEventListener('DOMContentLoaded', function() {
     item.addEventListener('click', () => window.openTab(item.getAttribute('data-tab')));
   });
 
-  document.getElementById('fetchDataBtn').addEventListener('click', window.fetchData);
-  document.getElementById('fetchMonthlyDataBtn').addEventListener('click', window.fetchMonthlyData);
-  document.getElementById('fetchTransactionsBtn').addEventListener('click', window.fetchTransactions);
+  document.getElementById('fetchTransactionsBtn').addEventListener('click', window.fetchTransactions); // Tab 1
+  document.getElementById('fetchMonthlyExpensesBtn').addEventListener('click', window.fetchMonthlyExpenses); // Tab 2
+  document.getElementById('fetchDataBtn').addEventListener('click', window.fetchData); // Tab 3
+  document.getElementById('fetchMonthlyDataBtn').addEventListener('click', window.fetchMonthlyData); // Tab 4
+  document.getElementById('searchTransactionsBtn').addEventListener('click', window.searchTransactions); // Tab 5
   document.getElementById('addTransactionBtn').addEventListener('click', openAddForm);
-  document.getElementById('fetchMonthlyExpensesBtn').addEventListener('click', window.fetchMonthlyExpenses);
-  document.getElementById('searchTransactionsBtn').addEventListener('click', window.searchTransactions);
 
   document.getElementById('prevPage').addEventListener('click', () => {
     if (currentPage > 1) {
       currentPage--;
-      window.fetchTransactions();
+      displayTransactions(cachedTransactions.data);
     }
   });
   document.getElementById('nextPage').addEventListener('click', () => {
     const totalPages = Math.ceil((cachedTransactions?.data.length || 0) / transactionsPerPage);
     if (currentPage < totalPages) {
       currentPage++;
-      window.fetchTransactions();
+      displayTransactions(cachedTransactions.data);
     }
   });
 
   document.getElementById('prevPageMonthly').addEventListener('click', () => {
     if (currentPageMonthly > 1) {
       currentPageMonthly--;
-      window.fetchMonthlyExpenses();
+      displayMonthlyExpenses(cachedMonthlyExpenses.data);
     }
   });
   document.getElementById('nextPageMonthly').addEventListener('click', () => {
     const totalPages = Math.ceil((cachedMonthlyExpenses?.data.length || 0) / expensesPerPage);
     if (currentPageMonthly < totalPages) {
       currentPageMonthly++;
-      window.fetchMonthlyExpenses();
+      displayMonthlyExpenses(cachedMonthlyExpenses.data);
     }
   });
 
   document.getElementById('prevPageSearch').addEventListener('click', () => {
     if (currentPageSearch > 1) {
       currentPageSearch--;
-      window.searchTransactions();
+      displaySearchResults(cachedSearchResults);
     }
   });
   document.getElementById('nextPageSearch').addEventListener('click', () => {
-    const totalPages = Math.ceil((cachedSearchResults?.transactions.length || 0) / searchPerPage);
+    const totalPages = Math.ceil((cachedSearchResults?.length || 0) / searchPerPage);
     if (currentPageSearch < totalPages) {
       currentPageSearch++;
-      window.searchTransactions();
+      displaySearchResults(cachedSearchResults);
     }
   });
 
-  // Điền ngày hiện tại và khoảng thời gian mặc định khi mở Mini App
   const today = new Date();
-  const formattedToday = formatDateToYYYYMMDD(today); // Ngày hiện tại: YYYY-MM-DD
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1); // Ngày đầu tháng
+  const formattedToday = formatDateToYYYYMMDD(today);
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const formattedFirstDay = formatDateToYYYYMMDD(firstDayOfMonth);
 
-  // Tab 1: Điền ngày hiện tại vào transactionDate
   const transactionDateInput = document.getElementById('transactionDate');
-  if (transactionDateInput) {
-    transactionDateInput.value = formattedToday;
-    // window.fetchTransactions(); // Tự động tải dữ liệu (tuỳ chọn)
-  }
+  if (transactionDateInput) transactionDateInput.value = formattedToday;
 
-  // Tab 2: Điền ngày đầu tháng vào startDate và ngày hiện tại vào endDate
   const startDateInput = document.getElementById('startDate');
   const endDateInput = document.getElementById('endDate');
   if (startDateInput && endDateInput) {
     startDateInput.value = formattedFirstDay;
     endDateInput.value = formattedToday;
-    // window.fetchData(); // Tự động tải dữ liệu thống kê (tuỳ chọn)
   }
+
+  const currentMonth = today.getMonth() + 1;
+  document.getElementById('expenseMonth').value = currentMonth;
+  document.getElementById('startMonth').value = currentMonth;
+  document.getElementById('endMonth').value = currentMonth;
 
   populateSearchCategories();
   window.openTab('tab1'); // Mặc định mở tab Giao dịch

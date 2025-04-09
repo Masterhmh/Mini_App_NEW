@@ -13,14 +13,15 @@
 <body>
   <div class="top-nav">
     <div class="nav-item active" data-tab="tab1"><i class="fas fa-list"></i><span>Giao dịch</span></div>
-    <div class="nav-item" data-tab="tab2"><i class="fas fa-table"></i><span>Thống kê</span></div>
-    <div class="nav-item" data-tab="tab3"><i class="fas fa-chart-bar"></i><span>Biểu đồ</span></div>
-    <div class="nav-item" data-tab="tab4"><i class="fas fa-info-circle"></i><span>Giới thiệu</span></div>
-    <div class="nav-item" data-tab="tab5"><i class="fas fa-money-bill-wave"></i><span>Chi tiêu tháng</span></div>
-    <div class="nav-item" data-tab="tab6"><i class="fas fa-search"></i><span>Tìm kiếm</span></div>
+    <div class="nav-item" data-tab="tab2"><i class="fas fa-money-bill-wave"></i><span>Liệt kê</span></div>
+    <div class="nav-item" data-tab="tab3"><i class="fas fa-table"></i><span>Thống kê</span></div>
+    <div class="nav-item" data-tab="tab4"><i class="fas fa-chart-bar"></i><span>Biểu đồ</span></div>
+    <div class="nav-item" data-tab="tab5"><i class="fas fa-search"></i><span>Tìm kiếm</span></div>
+    <div class="nav-item" data-tab="tab6"><i class="fas fa-info-circle"></i><span>Giới thiệu</span></div>
   </div>
 
   <div class="content-wrapper">
+    <!-- Tab 1: Giao dịch -->
     <div id="tab1" class="tab-content active">
       <h1>GIAO DỊCH TRONG NGÀY</h1>
       <p class="notification">Vui lòng chọn ngày và ấn "Lọc" để xem dữ liệu.</p>
@@ -47,12 +48,45 @@
       </div>
     </div>
 
+    <!-- Tab 2: Liệt kê (trước đây là Chi tiêu tháng) -->
     <div id="tab2" class="tab-content">
-      <h1>THỐNG KẾ</h1>
-      <p class="notification">Vui lòng chọn khoảng thời gian và ấn "Lọc" để xem dữ liệu.</p>
+      <h1>LIỆT KÊ GIAO DỊCH TRONG THÁNG</h1>
+      <p class="notification">Vui lòng chọn tháng và ấn "Lọc" để xem dữ liệu.</p>
       <div id="errorMessageTab2" style="color: red; text-align: center; display: none; margin-bottom: 1rem;"></div>
       <div id="successMessageTab2" style="color: green; text-align: center; display: none; margin-bottom: 1rem;"></div>
       <div id="loadingTab2" style="display: none; text-align: center; margin: 1rem 0;">
+        <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+      </div>
+      <div class="input-group">
+        Tháng: 
+        <select id="expenseMonth">
+          <option value="1">Tháng 1</option><option value="2">Tháng 2</option><option value="3">Tháng 3</option>
+          <option value="4">Tháng 4</option><option value="5">Tháng 5</option><option value="6">Tháng 6</option>
+          <option value="7">Tháng 7</option><option value="8">Tháng 8</option><option value="9">Tháng 9</option>
+          <option value="10">Tháng 10</option><option value="11">Tháng 11</option><option value="12">Tháng 12</option>
+        </select>
+        <button id="fetchMonthlyExpensesBtn">Lọc</button>
+      </div>
+      <div class="stats-container" id="monthlyExpenseSummary">
+        <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">0đ</div></div>
+        <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">0đ</div></div>
+        <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">0đ</div></div>
+      </div>
+      <div class="transactions-list" id="monthlyExpensesContainer"></div>
+      <div id="paginationMonthly" style="text-align: center; margin-top: 1rem;">
+        <button id="prevPageMonthly" class="pagination-btn" disabled>Trang trước</button>
+        <span id="pageInfoMonthly"></span>
+        <button id="nextPageMonthly" class="pagination-btn">Trang sau</button>
+      </div>
+    </div>
+
+    <!-- Tab 3: Thống kê -->
+    <div id="tab3" class="tab-content">
+      <h1>THỐNG KẾ</h1>
+      <p class="notification">Vui lòng chọn khoảng thời gian và ấn "Lọc" để xem dữ liệu.</p>
+      <div id="errorMessageTab3" style="color: red; text-align: center; display: none; margin-bottom: 1rem;"></div>
+      <div id="successMessageTab3" style="color: green; text-align: center; display: none; margin-bottom: 1rem;"></div>
+      <div id="loadingTab3" style="display: none; text-align: center; margin: 1rem 0;">
         <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--primary-color);"></i>
       </div>
       <div class="input-group">
@@ -72,12 +106,13 @@
       <div class="custom-legend" id="customLegend"></div>
     </div>
 
-    <div id="tab3" class="tab-content">
+    <!-- Tab 4: Biểu đồ -->
+    <div id="tab4" class="tab-content">
       <h1>BIỂU ĐỒ THU CHI THEO THÁNG</h1>
       <p class="notification">Vui lòng chọn khoảng thời gian và ấn "Lọc" để xem dữ liệu.</p>
-      <div id="errorMessageTab3" style="color: red; text-align: center; display: none; margin-bottom: 1rem;"></div>
-      <div id="successMessageTab3" style="color: green; text-align: center; display: none; margin-bottom: 1rem;"></div>
-      <div id="loadingTab3" style="display: none; text-align: center; margin: 1rem 0;">
+      <div id="errorMessageTab4" style="color: red; text-align: center; display: none; margin-bottom: 1rem;"></div>
+      <div id="successMessageTab4" style="color: green; text-align: center; display: none; margin-bottom: 1rem;"></div>
+      <div id="loadingTab4" style="display: none; text-align: center; margin: 1rem 0;">
         <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--primary-color);"></i>
       </div>
       <div class="input-group">
@@ -103,7 +138,52 @@
       </div>
     </div>
 
-    <div id="tab4" class="tab-content">
+    <!-- Tab 5: Tìm kiếm -->
+    <div id="tab5" class="tab-content">
+      <h1>TÌM KIẾM GIAO DỊCH</h1>
+      <p class="notification">Nhập ít nhất một tiêu chí (nội dung, số tiền, hoặc phân loại chi tiết) để tìm kiếm. Tháng là tùy chọn.</p>
+      <div id="errorMessageTab5" style="color: red; text-align: center; display: none; margin-bottom: 1rem;"></div>
+      <div id="successMessageTab5" style="color: green; text-align: center; display: none; margin-bottom: 1rem;"></div>
+      <div id="loadingTab5" style="display: none; text-align: center; margin: 1rem 0;">
+        <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+      </div>
+      <div class="input-group vertical">
+        <div class="input-field">
+          <label>Tháng: </label>
+          <select id="searchMonth" class="uniform-input">
+            <option value="">Tất cả</option>
+            <option value="1">Tháng 1</option><option value="2">Tháng 2</option><option value="3">Tháng 3</option>
+            <option value="4">Tháng 4</option><option value="5">Tháng 5</option><option value="6">Tháng 6</option>
+            <option value="7">Tháng 7</option><option value="8">Tháng 8</option><option value="9">Tháng 9</option>
+            <option value="10">Tháng 10</option><option value="11">Tháng 11</option><option value="12">Tháng 12</option>
+          </select>
+        </div>
+        <div class="input-field">
+          <label>Nội dung: </label>
+          <input type="text" id="searchContent" class="uniform-input" placeholder="Nhập nội dung">
+        </div>
+        <div class="input-field">
+          <label>Số tiền: </label>
+          <input type="number" id="searchAmount" class="uniform-input" min="0" placeholder="Nhập số tiền">
+        </div>
+        <div class="input-field">
+          <label>Phân loại chi tiết: </label>
+          <select id="searchCategory" class="uniform-input">
+            <option value="">Tất cả</option>
+          </select>
+        </div>
+        <button id="searchTransactionsBtn">Tìm kiếm</button>
+      </div>
+      <div class="transactions-list" id="searchResultsContainer"></div>
+      <div id="paginationSearch">
+        <button id="prevPageSearch" class="pagination-btn" disabled>Trang trước</button>
+        <span id="pageInfoSearch"></span>
+        <button id="nextPageSearch" class="pagination-btn">Trang sau</button>
+      </div>
+    </div>
+
+    <!-- Tab 6: Giới thiệu -->
+    <div id="tab6" class="tab-content">
       <h1>GIỚI THIỆU</h1>
       <div class="info-section">
         <div class="info-card">
@@ -136,80 +216,7 @@
       </div>
     </div>
 
-    <div id="tab5" class="tab-content">
-      <h1>CHI TIÊU TRONG THÁNG</h1>
-      <p class="notification">Vui lòng chọn tháng và ấn "Lọc" để xem dữ liệu.</p>
-      <div id="errorMessageTab5" style="color: red; text-align: center; display: none; margin-bottom: 1rem;"></div>
-      <div id="successMessageTab5" style="color: green; text-align: center; display: none; margin-bottom: 1rem;"></div>
-      <div id="loadingTab5" style="display: none; text-align: center; margin: 1rem 0;">
-        <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--primary-color);"></i>
-      </div>
-      <div class="input-group">
-        Tháng: 
-        <select id="expenseMonth">
-          <option value="1">Tháng 1</option><option value="2">Tháng 2</option><option value="3">Tháng 3</option>
-          <option value="4">Tháng 4</option><option value="5">Tháng 5</option><option value="6">Tháng 6</option>
-          <option value="7">Tháng 7</option><option value="8">Tháng 8</option><option value="9">Tháng 9</option>
-          <option value="10">Tháng 10</option><option value="11">Tháng 11</option><option value="12">Tháng 12</option>
-        </select>
-        <button id="fetchMonthlyExpensesBtn">Lọc</button>
-      </div>
-      <div class="stats-container" id="monthlyExpenseSummary">
-        <div class="stat-box income"><div class="title">Tổng thu nhập</div><div class="amount">0đ</div></div>
-        <div class="stat-box expense"><div class="title">Tổng chi tiêu</div><div class="amount">0đ</div></div>
-        <div class="stat-box balance"><div class="title">Số dư</div><div class="amount">0đ</div></div>
-      </div>
-      <div class="transactions-list" id="monthlyExpensesContainer"></div>
-      <div id="paginationMonthly" style="text-align: center; margin-top: 1rem;">
-        <button id="prevPageMonthly" class="pagination-btn" disabled>Trang trước</button>
-        <span id="pageInfoMonthly"></span>
-        <button id="nextPageMonthly" class="pagination-btn">Trang sau</button>
-      </div>
-    </div>
-
-   <div id="tab6" class="tab-content">
-  <h1>TÌM KIẾM GIAO DỊCH</h1>
-  <p class="notification">Nhập ít nhất một tiêu chí (nội dung, số tiền, hoặc phân loại chi tiết) để tìm kiếm. Tháng là tùy chọn.</p>
-  <div id="errorMessageTab6" style="color: red; text-align: center; display: none; margin-bottom: 1rem;"></div>
-  <div id="successMessageTab6" style="color: green; text-align: center; display: none; margin-bottom: 1rem;"></div>
-  <div id="loadingTab6" style="display: none; text-align: center; margin: 1rem 0;">
-    <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--primary-color);"></i>
-  </div>
-  <div class="input-group vertical">
-    <div class="input-field">
-      <label>Tháng: </label>
-      <select id="searchMonth" class="uniform-input">
-        <option value="">Tất cả</option>
-        <option value="1">Tháng 1</option><option value="2">Tháng 2</option><option value="3">Tháng 3</option>
-        <option value="4">Tháng 4</option><option value="5">Tháng 5</option><option value="6">Tháng 6</option>
-        <option value="7">Tháng 7</option><option value="8">Tháng 8</option><option value="9">Tháng 9</option>
-        <option value="10">Tháng 10</option><option value="11">Tháng 11</option><option value="12">Tháng 12</option>
-      </select>
-    </div>
-    <div class="input-field">
-      <label>Nội dung: </label>
-      <input type="text" id="searchContent" class="uniform-input" placeholder="Nhập nội dung">
-    </div>
-    <div class="input-field">
-      <label>Số tiền: </label>
-      <input type="number" id="searchAmount" class="uniform-input" min="0" placeholder="Nhập số tiền">
-    </div>
-    <div class="input-field">
-      <label>Phân loại chi tiết: </label>
-      <select id="searchCategory" class="uniform-input">
-        <option value="">Tất cả</option>
-      </select>
-    </div>
-    <button id="searchTransactionsBtn">Tìm kiếm</button>
-  </div>
-  <div class="transactions-list" id="searchResultsContainer"></div>
-  <div id="paginationSearch">
-    <button id="prevPageSearch" class="pagination-btn" disabled>Trang trước</button>
-    <span id="pageInfoSearch"></span>
-    <button id="nextPageSearch" class="pagination-btn">Trang sau</button>
-  </div>
-</div>
-
+    <!-- Modal chỉnh sửa giao dịch -->
     <div id="editModal" class="modal">
       <div class="modal-content">
         <h2>Chỉnh sửa giao dịch</h2>
@@ -240,6 +247,7 @@
       </div>
     </div>
 
+    <!-- Modal thêm giao dịch -->
     <div id="addModal" class="modal">
       <div class="modal-content">
         <h2>Thêm giao dịch mới</h2>
